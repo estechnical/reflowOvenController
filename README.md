@@ -8,13 +8,16 @@ ed@estechnical.co.uk
 http://www.estechnical.co.uk
 
 
-The ESTechnical treflow oven controller was designed to operate the T962, T962A and T962C ovens.
+The ESTechnical reflow oven controller was designed to operate the T962, T962A and T962C ovens.
 
 It operates using PID control of the heater and fan output to improve the control compared to the original manufacturer's controller.
 
 ESTechnical sell the controller hardware ready to install, currently on eBay and very soon on the ESTechnical website http://www.estechnical.co.uk
 
-To edit/compile/program the controller, first install the arduino IDE. 
+Thanks go to Toby Wilkinson for his excellent menu codebase - http://tobestool.net/t962-t962a-reflow-oven-controller/
+Thanks are also due to Brett Beauregard for his excellent work on the arduino PID library - http://playground.arduino.cc/Code/PIDLibrary
+
+To edit/compile/program the controller, first install the arduino IDE - http://arduino.cc/en/Main/Software
 
 The ESTechnical reflow controller uses a 20MHz crystal instead of a 16MHz crystal, this requires special build settings for the arduino IDE. Browse to your arduino installation directory, then browse to hardware/arduino/boards.txt. Edit this file and add the following block to the file:
 
