@@ -117,7 +117,7 @@ double Setpoint, Input, Output;
 unsigned int WindowSize = 100;
 unsigned long windowStartTime;
 
-unsigned long startTime, stateChangedTime, lastDisplayUpdate; // a handful of timer variables
+unsigned long startTime, stateChangedTime = 0, lastUpdate = 0, lastDisplayUpdate = 0; // a handful of timer variables
 
 //volatile boolean cycleStart = false;
 
@@ -289,7 +289,7 @@ void setup()
   profileLoadSave.addChild(&profile_number);
   profile_number.addItem(&load_profile);
   load_profile.addItem(&save_profile);
-  
+
   control.addItem(&factory_reset);
 
   /*
@@ -378,8 +378,8 @@ void setup()
 void loop()
 {
 
-  if(millis() - lastDisplayUpdate >= 100){
-    lastDisplayUpdate = millis();
+  if(millis() - lastUpdate >= 100){
+    lastUpdate = millis();
 
     // keep a rolling average of the temp
     total -= readings[index];               // subtract the last gyro reading
@@ -408,12 +408,20 @@ void loop()
     //Serial.print("Temp1= ");
     //Serial.println(readings[index]);
 
-    if(currentState != idle){
-      updateDisplay();
+
+    if(currentState == idle){
+      myMenu.poll();
     } 
     else {
-      myMenu.poll();
+      if(millis() - lastDisplayUpdate > 250){ // 4hz display during reflow cycle
+        lastDisplayUpdate = millis();
+        if(currentState != idle){
+          updateDisplay();
+        } 
+      }
     }
+
+
 
 #ifdef DEBUG
     Serial.print(Input); 
@@ -754,12 +762,14 @@ void factoryReset(){
   rampDownRate = 2.0; 
   lcd.clear();
   lcd.print("Resetting...");
-  
+
   // then save the same profile settings into all slots
   for(int i =0; i< 32; i++){
     saveParameters(i);
   }
   delay(500);
 }
+
+
 
 
