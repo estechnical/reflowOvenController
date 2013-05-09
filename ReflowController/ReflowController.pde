@@ -59,6 +59,7 @@ double rampDownRate = 2.0; // the rate the PID controller for the fan aims to co
 
 int fanAssistSpeed = 50;
 
+boolean useThermocoupleOne = true;
 
 // do not edit below here unless you know what you are doing!
 
@@ -304,9 +305,9 @@ void setup()
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);
 
-#ifdef DEBUG
-  Serial.begin(9600);
-#endif
+
+  Serial.begin(57600);
+
 
   if(firstRun()){
     for(int i=0; i<32;i++){ // save a bunch of copies of the deafult parameters into EEPROM
@@ -380,10 +381,18 @@ void loop()
 
   if(millis() - lastUpdate >= 100){
     lastUpdate = millis();
-
+    
+    double temp1 = getAirTemperature1(); 
+    double temp2 = getAirTemperature2();
+    
     // keep a rolling average of the temp
-    total -= readings[index];               // subtract the last gyro reading
-    readings[index] = getAirTemperature1(); // read the thermocouple
+    total -= readings[index];               // subtract the last reading
+    
+    if(useThermocoupleOne){
+      readings[index] = temp1;
+    } else {
+      readings[index] = temp2;
+    }
     total += readings[index];               // add the reading to the total
     index = (index + 1);                    // advance to the next index
 
@@ -418,6 +427,12 @@ void loop()
         if(currentState != idle){
           updateDisplay();
         } 
+        // print out the status, temperature set point and measured temperatures
+        Serial.write(currentState);
+        Serial.write(Setpoint);
+        Serial.write(temp1);
+        Serial.write(temp2);
+        
       }
     }
 
