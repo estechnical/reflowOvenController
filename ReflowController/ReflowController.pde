@@ -429,10 +429,13 @@ void loop()
         } 
         // print out the status, temperature set point and measured temperatures
         Serial.write(currentState);
-        Serial.write(Setpoint);
-        Serial.write(temp1);
-        Serial.write(temp2);
-        
+        Serial.write(highByte(Setpoint));
+        Serial.write(lowByte(Setpoint));
+        Serial.write(highByte(temp1));
+        Serial.write(lowByte(temp1));
+        Serial.write(highByte(temp2));
+        Serial.write(lowByte(temp2));
+                
       }
     }
 
