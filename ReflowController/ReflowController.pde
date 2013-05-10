@@ -146,7 +146,7 @@ unsigned short index = 0;                            // the index of the current
 double total = 0;                            // the running total
 double average = 0;                          // the average
 
-
+boolean lastBackPin = true;
 boolean lastStopPin = true; // this is a flag used to store the state of the stop key pin on the last cycle through the main loop
 // if the stop key state changes, we perform an action, not EVERY time we find the key is down... this is to prevent multiple
 // triggers from a single keypress
@@ -450,7 +450,9 @@ void loop()
       stateChangedTime = millis();
     }
     boolean stopPin = digitalRead(7); // check the state of the stop key
-    if(stopPin == LOW && lastStopPin != stopPin){ // if the state has just changed
+    boolean backPin = digitalRead(6); // and the back key, both will exit the reflow cycle
+    
+    if((stopPin == LOW && lastStopPin != stopPin) || (backPin == LOW && lastBackPin != backPin)){ // if the state has just changed
       if(currentState == coolDown){
         currentState = idle;
       } 
@@ -459,6 +461,7 @@ void loop()
       }
     }
     lastStopPin = stopPin;
+    lastBackPin = backPin;
     //read the temperature
     //InputTemp = getAirTemperature1();
 
