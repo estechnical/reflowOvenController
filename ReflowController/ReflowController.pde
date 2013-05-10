@@ -427,25 +427,22 @@ void loop()
         if(currentState != idle){
           updateDisplay();
         } 
-        // print out the status, temperature set point and measured temperatures
+        // output the status, temperature set point and measured temperatures
+        
+        unsigned int sp = Setpoint * 100;
+        unsigned int tmp1 = temp1 * 100;
+        unsigned int tmp2 = temp2 * 100;
         Serial.write(currentState);
-        Serial.write(highByte(Setpoint));
-        Serial.write(lowByte(Setpoint));
-        Serial.write(highByte(temp1));
-        Serial.write(lowByte(temp1));
-        Serial.write(highByte(temp2));
-        Serial.write(lowByte(temp2));
+        Serial.write(highByte(sp));
+        Serial.write(lowByte(sp));
+        Serial.write(highByte(tmp1));
+        Serial.write(lowByte(tmp1));
+        Serial.write(highByte(tmp2));
+        Serial.write(lowByte(tmp2));
+        
                 
       }
     }
-
-
-
-#ifdef DEBUG
-    Serial.print(Input); 
-    Serial.print("  "); 
-    Serial.println(getAirTemperature2());
-#endif
 
     if(currentState != lastState){
       lastState = currentState;
