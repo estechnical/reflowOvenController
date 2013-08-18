@@ -12,15 +12,16 @@
 #include "Arduino.h"
 #include "LCDMenu.h"
 
-
 LCDMenu::LCDMenu () {
 	lastKey = none;
 }
 
-void LCDMenu::init (MenuItem *initial, LiquidCrystal *lcd) {
+void LCDMenu::init (MenuItem *initial, LiquidCrystal *lcd, boolean fourkey) {
 	// todo: pass the pins in for the LCD screen
 	LCD = lcd;
-		
+	
+	fourkeys = fourkey;
+	
 	// todo: sort out how button pin mapping works
 	// in the reflow controller, for speed of reading, all the buttons are on portD
 	// hence can be read in one go...
@@ -64,18 +65,32 @@ void LCDMenu::poll () {
 	// go through the five bits that correspond to keys and decide if any key is pressed (only care about the first we find)
 	// keys are pulled up and debounced, low bit means key is pressed.
 	
-	if((pd &1) == 0){ 
-		pressedKey = ok;
-	} else if ((( pd >>1 ) &1) == 0){
-		pressedKey = down;
-	} else if (((pd >> 2) &1) == 0){
-		pressedKey = up;
-	} else if (((pd >> 3) &1) == 0){
-		pressedKey = back;
-	} else if (((pd >> 4) &1) == 0){
-		pressedKey = stop;
-	} else {
-		pressedKey = none;
+	if(fourkeys){
+		if((pd &1) == 0){ 
+			pressedKey = up;
+		} else if ((( pd >>1 ) &1) == 0){
+			pressedKey = back;
+		} else if (((pd >> 2) &1) == 0){
+			pressedKey = ok;
+		} else if (((pd >> 3) &1) == 0){
+			pressedKey = down;
+		} else {
+			pressedKey = none;
+		}
+	}else{
+		if((pd &1) == 0){ 
+			pressedKey = ok;
+		} else if ((( pd >>1 ) &1) == 0){
+			pressedKey = down;
+		} else if (((pd >> 2) &1) == 0){
+			pressedKey = up;
+		} else if (((pd >> 3) &1) == 0){
+			pressedKey = back;
+		} else if (((pd >> 4) &1) == 0){
+			pressedKey = stop;
+		} else {
+			pressedKey = none;
+		}
 	}
 	
 	if(pressedKey != lastKey){

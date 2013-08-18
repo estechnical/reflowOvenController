@@ -18,7 +18,7 @@ public:
 	LCDMenu ();
 	void showCurrent();
 	void showCurrentValue();
-	void init(MenuItem *initial, LiquidCrystal *lcd);
+	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey);
 	void poll();
 	
 private:
@@ -36,7 +36,7 @@ private:
 	};
 	buttons pressedKey, lastKey;
 	LiquidCrystal *LCD;
-
+	boolean fourkeys;
 	
 };
 
