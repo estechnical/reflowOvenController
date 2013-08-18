@@ -29,8 +29,6 @@
  remap fan speed to be more linear, 0 - 100 needs to map 0=0, 1=60,then linear to 100= 100
  
  */
-
-
 // all is currently running from the first thermocouple.
 // this is the front one nearest the opening of the drawer.
 
@@ -59,12 +57,12 @@ double rampDownRate = 2.0; // the rate the PID controller for the fan aims to co
 
 int fanAssistSpeed = 50;
 
-boolean useThermocoupleOne = true;
 
 // do not edit below here unless you know what you are doing!
 
 int profileNumber = 0;
 
+boolean thermocoupleOneActive = true; // this is used to keep track of which thermocouple input is used for control
 
 //SPI Bus
 #define DATAOUT 11//MOSI
@@ -135,7 +133,7 @@ unsigned int fanValue, heaterValue;
 
 //bits for keeping track of the temperature ramp
 #define NUMREADINGS 10
-double aitTemp[NUMREADINGS];
+double airTemp[NUMREADINGS];
 double runningTotalRampRate; 
 double rampRate = 0;
 
@@ -146,7 +144,7 @@ unsigned short index = 0;                            // the index of the current
 double total = 0;                            // the running total
 double average = 0;                          // the average
 
-boolean lastBackPin = true;
+
 boolean lastStopPin = true; // this is a flag used to store the state of the stop key pin on the last cycle through the main loop
 // if the stop key state changes, we perform an action, not EVERY time we find the key is down... this is to prevent multiple
 // triggers from a single keypress
@@ -176,6 +174,45 @@ char spi_transfer(volatile char data)
   return SPDR; // return the received byte
 }
 
+
+
+void abortWithError(int error){
+  // set outputs off for safety.
+  digitalWrite(8,LOW);
+  digitalWrite(9,LOW);
+
+  lcd.clear();
+
+  switch(error){
+  case 1:
+    lcd.print("Temperature"); 
+    lcd.setCursor(0,1);
+    lcd.print("following error");
+    lcd.setCursor(0,2);
+    lcd.print("during heating");
+    break;
+  case 2:
+    lcd.print("Temperature"); 
+    lcd.setCursor(0,1);
+    lcd.print("following error");
+    lcd.setCursor(0,2);
+    lcd.print("during cooling");
+    break;
+  case 3:
+    lcd.print("Thermocouple input"); 
+    lcd.setCursor(0,1);
+    lcd.print("open circuit");
+    lcd.setCursor(0,2);
+    lcd.print("Power off &");
+    lcd.setCursor(0,3);
+    lcd.print("check connections");
+    break;
+  }
+  while(1){ // and stop forever...
+  }
+}
+
+
 double getTemperature(){
   // this does not do chip select for you, chip select first, then call getTemperature() for the result from the selected IC, dont' 
   //forget to release chip select when done
@@ -192,18 +229,24 @@ double getTemperature(){
   char data = 0; // dummy data to write
   //spi_transfer(data);
   reply = spi_transfer(data);
-
   result = reply << 8;
   reply = spi_transfer(data);
   result = result | reply;
+  
   spi_transfer(data);
-  spi_transfer(data);
+  reply = spi_transfer(data); // get the last byte, we care about the error bits
+  if(reply & 1){
+    abortWithError(3);
+
+  }
   //lcd.clear();
   //lcd.print(result, BIN);
   result = (uint16_t)result >> 2;
   //lcd.clear();
 
-  return result * 0.25;
+  result = result * 0.25;
+
+  return result;
 
 }
 
@@ -226,7 +269,7 @@ void updateDisplay(){
   lcd.clear();
   switch(currentState){
   case idle:
-    lcd.print("Idle ");
+    lcd.print("idle ");
     break;
   case rampToSoak:
     lcd.print("ramp ");
@@ -247,9 +290,7 @@ void updateDisplay(){
     lcd.print("coolDown ");
     break;
   } 
-  lcd.print((int)average);
-  lcd.print(".");
-  lcd.print((int) (average * 10) % 10);// fixed 1 DP
+  lcd.print(average,1);
   lcd.print((char)223);// degrees symbol!
   lcd.print("C");
   if(currentState!=idle){
@@ -275,7 +316,11 @@ void updateDisplay(){
 void setup()
 {
 
-  myMenu.init(&control, &lcd);
+#ifdef TOASTERCONVERSION
+  myMenu.init(&control, &lcd, true);// true
+#else
+  myMenu.init(&control, &lcd, false); // false (fourkeys!)
+#endif
   control.addItem(&profile);
   profile.addChild(&rampUp_rate);
   rampUp_rate.addItem(&soak_temp);
@@ -305,9 +350,9 @@ void setup()
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);
 
-
-  Serial.begin(57600);
-
+#ifdef DEBUG
+  Serial.begin(9600);
+#endif
 
   if(firstRun()){
     for(int i=0; i<32;i++){ // save a bunch of copies of the deafult parameters into EEPROM
@@ -360,7 +405,7 @@ void setup()
   int temp = getAirTemperature1();
   runningTotalRampRate = temp * NUMREADINGS;
   for(int i =0; i<NUMREADINGS; i++){
-    aitTemp[i]=temp; 
+    airTemp[i]=temp; 
   }
 
   myMenu.showCurrent();
@@ -373,25 +418,33 @@ void setup()
 
 
 #endif
+  lcd.clear();
+  lcd.print(" ESTechnical.co.uk");
+  lcd.setCursor(0,1);
+  lcd.print(" Reflow controller");
+  lcd.setCursor(0,2);
+  lcd.print("      v2.0");
+  delay(7500);
 
 }
+
 
 void loop()
 {
 
   if(millis() - lastUpdate >= 100){
     lastUpdate = millis();
-    
-    double temp1 = getAirTemperature1(); 
-    double temp2 = getAirTemperature2();
-    
+
+    double temp1, temp2;
+    temp1 = getAirTemperature1();
+    temp2 = getAirTemperature2();
     // keep a rolling average of the temp
     total -= readings[index];               // subtract the last reading
-    
-    if(useThermocoupleOne){
-      readings[index] = temp1;
-    } else {
-      readings[index] = temp2;
+    if(thermocoupleOneActive){  // use readings from the chosen thermocouple
+      readings[index] = temp1; // read the thermocouple
+    } 
+    else {
+      readings[index] = temp2; // read the thermocouple
     }
     total += readings[index];               // add the reading to the total
     index = (index + 1);                    // advance to the next index
@@ -404,16 +457,16 @@ void loop()
 
     // need to keep track of a few past readings in order to work out rate of rise
     for(int i =1; i< NUMREADINGS; i++){ // iterate over all previous entries, moving them backwards one index
-      aitTemp[i-1] = aitTemp[i];
+      airTemp[i-1] = airTemp[i];
     }
 
 
-    aitTemp[NUMREADINGS-1] = average; // update the last index with the newest average
+    airTemp[NUMREADINGS-1] = average; // update the last index with the newest average
 
-      rampRate = (aitTemp[NUMREADINGS-1] - aitTemp[0]); // subtract earliest reading from the current one
+      rampRate = (airTemp[NUMREADINGS-1] - airTemp[0]); // subtract earliest reading from the current one
     // this gives us the rate of rise in degrees per polling cycle time/ num readings
 
-    Input = aitTemp[NUMREADINGS-1]; // update the variable the PID reads
+    Input = airTemp[NUMREADINGS-1]; // update the variable the PID reads
     //Serial.print("Temp1= ");
     //Serial.println(readings[index]);
 
@@ -427,22 +480,18 @@ void loop()
         if(currentState != idle){
           updateDisplay();
         } 
-        // output the status, temperature set point and measured temperatures
-        
-        unsigned int sp = Setpoint * 100;
-        unsigned int tmp1 = temp1 * 100;
-        unsigned int tmp2 = temp2 * 100;
-        Serial.write(currentState);
-        Serial.write(highByte(sp));
-        Serial.write(lowByte(sp));
-        Serial.write(highByte(tmp1));
-        Serial.write(lowByte(tmp1));
-        Serial.write(highByte(tmp2));
-        Serial.write(lowByte(tmp2));
-        
-                
+        Serial.write(currentState); // see the enum for the definition of the states
+
       }
     }
+
+
+
+#ifdef DEBUG
+    Serial.print(Input); 
+    Serial.print("  "); 
+    Serial.println(getAirTemperature2());
+#endif
 
     if(currentState != lastState){
       lastState = currentState;
@@ -450,9 +499,7 @@ void loop()
       stateChangedTime = millis();
     }
     boolean stopPin = digitalRead(7); // check the state of the stop key
-    boolean backPin = digitalRead(6); // and the back key, both will exit the reflow cycle
-    
-    if((stopPin == LOW && lastStopPin != stopPin) || (backPin == LOW && lastBackPin != backPin)){ // if the state has just changed
+    if(stopPin == LOW && lastStopPin != stopPin){ // if the state has just changed
       if(currentState == coolDown){
         currentState = idle;
       } 
@@ -461,7 +508,6 @@ void loop()
       }
     }
     lastStopPin = stopPin;
-    lastBackPin = backPin;
     //read the temperature
     //InputTemp = getAirTemperature1();
 
@@ -478,7 +524,7 @@ void loop()
         PID.SetMode(AUTOMATIC);
         PID.SetControllerDirection(DIRECT);
         PID.SetTunings(Kp,Ki, Kd);
-        Setpoint = aitTemp[NUMREADINGS-1];
+        Setpoint = airTemp[NUMREADINGS-1];
         stateChanged = false;
       }    
       Setpoint += (rampUpRate/10); // target set ramp up rate
@@ -551,6 +597,15 @@ void loop()
       }
     }
   }
+
+  // safety check that we're not doing something stupid. 
+  // if the thermocouple is wired backwards, temp goes DOWN when it increases
+  // during cooling, the t962a lags a long way behind, hence the hugely lenient cooling allowance.
+
+  // both of these errors are blocking and do not exit!
+  if(Setpoint > Input + 20) abortWithError(1);// if we're 20 degree cooler than setpoint, abort
+  //if(Input > Setpoint + 50) abortWithError(2);// or 50 degrees hotter, also abort
+
   PID.Compute();
 
   //if(currentState!=idle){
@@ -586,7 +641,6 @@ void loop()
   else{
     digitalWrite(8,HIGH);
   }
-  //delay(8);
 }
 
 
@@ -760,7 +814,7 @@ void loadParameters(unsigned int profile){
 
 boolean firstRun(){ // we check the whole of the space of the 16th profile, if all bytes are 255, we are doing the very first run
   unsigned int offset = 16;
-  for(int i = offset *15; i<(offset*15) + 16;i++){
+  for(unsigned int i = offset *15; i<(offset*15) + 16;i++){
     if(EEPROM.read(i) != 255) return false;
   }
   lcd.clear();
@@ -787,6 +841,10 @@ void factoryReset(){
   }
   delay(500);
 }
+
+
+
+
 
 
 
