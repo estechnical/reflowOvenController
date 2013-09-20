@@ -8,7 +8,7 @@
  
  Two thermocouples are mounted in the top of the oven by the manufacturer to measure the internal temperature, these are good for measuring the air temp but don't give good results alone.
  
- Low speed pwm (100 hertz is ideal for SSR driven heaters) 
+ Variable duty cycle control of fan.
  
  Replace the exhaust fan control with another SSR to simplify the control and allow fan PWM control.
  
@@ -23,7 +23,6 @@
 /*
 
  ToDo:
- instructions
  make menu more sensible for choosing the profile number to save/load
  fan idle speed during a cycle should be an adjustable parameter
  remap fan speed to be more linear, 0 - 100 needs to map 0=0, 1=60,then linear to 100= 100
@@ -39,6 +38,7 @@
 // 185 !! peak goives good results, just hits 220 on the board
 // 175 peak, does not get board up to temp at all
 
+//#define OPENDRAWER // this is for Albert Lim's version, it outputs a pulse on the TTL serial port to open the drawer at the beginning of ramp down
 
 //#define DEBUG
 // the parameters that are initialised here are saved as the default profiles into the eeprom on first run
@@ -47,7 +47,7 @@ int idleTemp = 20;
 int soakTemp = 130;
 int soakDuration = 80; //seconds
 int peakTemp = 220; // peak temperature (careful!)
-int peakDuration = 40; // seconds - this is not the time above liquidous - this should be confirmed carefully with a datalogger!
+int peakDuration = 40; // seconds - this is not necessarily the time above liquidous - this should be confirmed carefully with a datalogger!
 
 double rampUpRate = 0.80; // degrees celcius per second, this is used during transition to soak temp and to peak temp
 double rampDownRate = 2.0; // the rate the PID controller for the fan aims to cool down to the idle setpoint 
@@ -55,8 +55,12 @@ double rampDownRate = 2.0; // the rate the PID controller for the fan aims to co
 // temprature this is the saving grace of the samll IR oven, slowly ramping the temperature as measured somewhere near the edge 
 // of the soldering area gives good results, the peak temperature is kept stable by the gentle control of the ramp rate.
 
-int fanAssistSpeed = 50;
 
+#ifdef OPENDRAWER
+int fanAssistSpeed = 40;
+#else
+int fanAssistSpeed = 50; // default fan speed
+#endif
 
 // do not edit below here unless you know what you are doing!
 
@@ -99,7 +103,7 @@ MenuItemSubMenu profile ("Edit Profile");
 MenuItemDouble rampUp_rate ("Ramp up rate (C/S)", &rampUpRate, 0.1, 5.0);
 MenuItemInteger soak_temp ("Soak temp (C)",  &soakTemp, 50, 180,false);
 MenuItemInteger soak_duration ("Soak time (S)", &soakDuration,10,300,false);
-MenuItemInteger peak_temp ("Peak temp (C)", &peakTemp,100,250,false);
+MenuItemInteger peak_temp ("Peak temp (C)", &peakTemp,100,300,false);
 MenuItemInteger peak_duration ("Peak time (S)", &peakDuration,5,60,false);
 MenuItemDouble rampDown_rate ("Ramp down rate (C/S)", &rampDownRate, 0.1, 10);
 
@@ -139,15 +143,23 @@ double rampRate = 0;
 
 double rateOfRise = 0;
 
-double readings[NUMREADINGS];                // the readings used to make a stable temp rolling average
+double readingsT1[NUMREADINGS];                // the readings used to make a stable temp rolling average
+double readingsT2[NUMREADINGS];
 unsigned short index = 0;                            // the index of the current reading
-double total = 0;                            // the running total
-double average = 0;                          // the average
-
+double totalT1 = 0;                            // the running total
+double totalT2 = 0;
+double averageT1 = 0;                          // the average
+double averageT2 = 0;
 
 boolean lastStopPin = true; // this is a flag used to store the state of the stop key pin on the last cycle through the main loop
 // if the stop key state changes, we perform an action, not EVERY time we find the key is down... this is to prevent multiple
 // triggers from a single keypress
+
+
+#ifdef OPENDRAWER
+boolean openedDrawer=false;
+#endif
+
 
 // state machine bits
 
@@ -232,7 +244,7 @@ double getTemperature(){
   result = reply << 8;
   reply = spi_transfer(data);
   result = result | reply;
-  
+
   spi_transfer(data);
   reply = spi_transfer(data); // get the last byte, we care about the error bits
   if(reply & 1){
@@ -265,6 +277,13 @@ double getAirTemperature2(){
   return temp;
 }
 
+boolean getJumperState(){
+  boolean result = false; // jumper open
+  unsigned int val = analogRead(7);
+  if(val < 500) result = true;
+  return result;
+}
+
 void updateDisplay(){
   lcd.clear();
   switch(currentState){
@@ -290,7 +309,7 @@ void updateDisplay(){
     lcd.print("coolDown ");
     break;
   } 
-  lcd.print(average,1);
+  lcd.print(averageT1,1);
   lcd.print((char)223);// degrees symbol!
   lcd.print("C");
   if(currentState!=idle){
@@ -313,14 +332,14 @@ void updateDisplay(){
   lcd.print("C/S");
 }
 
+
+
 void setup()
 {
 
-#ifdef TOASTERCONVERSION
-  myMenu.init(&control, &lcd, true);// true
-#else
-  myMenu.init(&control, &lcd, false); // false (fourkeys!)
-#endif
+  boolean state = getJumperState();
+  myMenu.init(&control, &lcd, state);
+
   control.addItem(&profile);
   profile.addChild(&rampUp_rate);
   rampUp_rate.addItem(&soak_temp);
@@ -345,13 +364,15 @@ void setup()
    MenuItemAction load_profile ("Load profile",  &cycleStart);
    */
 
-
-
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);
 
-#ifdef DEBUG
-  Serial.begin(9600);
+
+  Serial.begin(57600);
+
+#ifdef OPENDRAWER
+  pinMode(1,OUTPUT);
+  digitalWrite(1,LOW);
 #endif
 
   if(firstRun()){
@@ -410,20 +431,16 @@ void setup()
 
   myMenu.showCurrent();
 
-#ifdef DEBUG
-  Serial.print("Temperature 1 "); 
-  Serial.println(getAirTemperature1());
-  Serial.print("Temperature 2 "); 
-  Serial.println(getAirTemperature2());
-
-
-#endif
   lcd.clear();
   lcd.print(" ESTechnical.co.uk");
   lcd.setCursor(0,1);
   lcd.print(" Reflow controller");
   lcd.setCursor(0,2);
-  lcd.print("      v2.0");
+  lcd.print("      v2.1");
+#ifdef OPENDRAWER
+  lcd.setCursor(0,3);
+  lcd.print(" Albert Lim version");
+#endif
   delay(7500);
 
 }
@@ -439,21 +456,21 @@ void loop()
     temp1 = getAirTemperature1();
     temp2 = getAirTemperature2();
     // keep a rolling average of the temp
-    total -= readings[index];               // subtract the last reading
-    if(thermocoupleOneActive){  // use readings from the chosen thermocouple
-      readings[index] = temp1; // read the thermocouple
-    } 
-    else {
-      readings[index] = temp2; // read the thermocouple
-    }
-    total += readings[index];               // add the reading to the total
-    index = (index + 1);                    // advance to the next index
+    totalT1 -= readingsT1[index];               // subtract the last reading
+    totalT2 -= readingsT2[index];
+
+    readingsT1[index] = temp1; // read the thermocouple
+    readingsT2[index] = temp2; // read the thermocouple
+
+    totalT1 += readingsT1[index];               // add the reading to the total
+    totalT2 += readingsT2[index]; 
+    index++;                    // advance to the next index
 
     if (index >= NUMREADINGS)               // if we're at the end of the array...
       index = 0;                            // ...wrap around to the beginning
 
-    average = (total / NUMREADINGS);    // calculate the average temp
-
+    averageT1 = (totalT1 / NUMREADINGS);    // calculate the average temp
+    averageT2 = (totalT2 / NUMREADINGS);
 
     // need to keep track of a few past readings in order to work out rate of rise
     for(int i =1; i< NUMREADINGS; i++){ // iterate over all previous entries, moving them backwards one index
@@ -461,9 +478,9 @@ void loop()
     }
 
 
-    airTemp[NUMREADINGS-1] = average; // update the last index with the newest average
+    airTemp[NUMREADINGS-1] = averageT1; // update the last index with the newest average
 
-      rampRate = (airTemp[NUMREADINGS-1] - airTemp[0]); // subtract earliest reading from the current one
+    rampRate = (airTemp[NUMREADINGS-1] - airTemp[0]); // subtract earliest reading from the current one
     // this gives us the rate of rise in degrees per polling cycle time/ num readings
 
     Input = airTemp[NUMREADINGS-1]; // update the variable the PID reads
@@ -486,12 +503,30 @@ void loop()
     }
 
 
+    if (currentState != idle)
+    {
+      Serial.print((millis() - startTime));
+      Serial.print(",");
+      Serial.print((int)currentState);
+      Serial.print(",");
+      Serial.print(Setpoint); 
+      Serial.print(",");
+      Serial.print(heaterValue); 
+      Serial.print(",");
+      Serial.print(fanValue); 
+      Serial.print(",");
+      Serial.print(averageT1); 
+      Serial.print(",");
+      Serial.println(averageT2); 
+    }
+    else 
+    {
+      Serial.print("0,0,0,0,0,"); 
+      Serial.print(averageT1); 
+      Serial.print(",");
+      Serial.println(averageT2); 
+    }
 
-#ifdef DEBUG
-    Serial.print(Input); 
-    Serial.print("  "); 
-    Serial.println(getAirTemperature2());
-#endif
 
     if(currentState != lastState){
       lastState = currentState;
@@ -508,8 +543,6 @@ void loop()
       }
     }
     lastStopPin = stopPin;
-    //read the temperature
-    //InputTemp = getAirTemperature1();
 
     switch(currentState){
     case idle:
@@ -576,6 +609,15 @@ void loop()
         Setpoint = peakTemp -15; // get it all going with a bit of a kick! v sluggish here otherwise, too hot too long
       }
 
+#ifdef OPENDRAWER
+      if(!openedDrawer){
+        openedDrawer=true;
+        digitalWrite(1,HIGH);
+        delay(5);
+        digitalWrite(1,LOW);
+      }
+#endif
+
       Setpoint -= (rampDownRate/10); 
 
       if(Setpoint <= idleTemp){
@@ -603,7 +645,9 @@ void loop()
   // during cooling, the t962a lags a long way behind, hence the hugely lenient cooling allowance.
 
   // both of these errors are blocking and do not exit!
-  if(Setpoint > Input + 20) abortWithError(1);// if we're 20 degree cooler than setpoint, abort
+#ifndef OPENDRAWER
+  if(Setpoint > Input + 50) abortWithError(1);// if we're 50 degree cooler than setpoint, abort
+#endif
   //if(Input > Setpoint + 50) abortWithError(2);// or 50 degrees hotter, also abort
 
   PID.Compute();
@@ -648,6 +692,9 @@ void loop()
 void cycleStart(){
   startTime = millis();
   currentState = rampToSoak;
+#ifdef OPENDRAWER
+  openedDrawer=false;
+#endif
 }
 
 void saveProfile(){
@@ -824,7 +871,7 @@ boolean firstRun(){ // we check the whole of the space of the 16th profile, if a
 }
 
 void factoryReset(){
-  // clear any adjusted settings first, just be sure...
+  // clear any adjusted settings first, just to be sure...
   soakTemp = 130;
   soakDuration = 80;
   peakTemp = 220;
@@ -841,11 +888,4 @@ void factoryReset(){
   }
   delay(500);
 }
-
-
-
-
-
-
-
 
