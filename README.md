@@ -50,10 +50,9 @@ atmega328_20MHz.build.variant=standard
 Save the file and quit. 
 
 
-Copy the ReflowController directory to your arduino sketchbook directory.
-Copy all the folders in Libraries to the Libraries directory in your sketchbook.
+Find the sketchbook directory that the arduino IDE created when installing, you can see the path in the arduino preferences menu. Copy the ReflowController directory (contained in these files downloaded from github) to the Sketchbook location. Copy all the folders in the Libraries folder (contained in these files downloaded from github) to the libraries directory in the arduino sketchbook location.
 
-Open the arduino ide, open the ReflowController.pde sketch. Select the right kind of hardware from the Tools->Board menu. Compile this with Ctrl+R to test everything is installed correctly. Choose the right serial port from Tools->Serial Port and then upload the code using Ctrl+U.
+Open the arduino ide, open the ReflowController.pde sketch. Select the right kind of hardware from the Tools->Board menu . Compile this with Ctrl+R to test everything is installed correctly. Choose the right serial port from Tools->Serial Port and then upload the code using Ctrl+U.
 
 
 
