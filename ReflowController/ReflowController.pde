@@ -1,3 +1,5 @@
+
+
 /*
  
  
@@ -38,9 +40,12 @@
 // 185 !! peak goives good results, just hits 220 on the board
 // 175 peak, does not get board up to temp at all
 
-//#define OPENDRAWER // this is for Albert Lim's version, it outputs a pulse on the TTL serial port to open the drawer at the beginning of ramp down
+
+// this is for Albert Lim's version, it outputs a pulse on the TTL serial port to open the drawer at the beginning of ramp down
+//#define OPENDRAWER 
 
 //#define DEBUG
+
 // the parameters that are initialised here are saved as the default profiles into the eeprom on first run
 // the all important reflow curve variables:
 int idleTemp = 20;
@@ -56,13 +61,16 @@ double rampDownRate = 2.0; // the rate the PID controller for the fan aims to co
 // of the soldering area gives good results, the peak temperature is kept stable by the gentle control of the ramp rate.
 
 
-#ifdef OPENDRAWER
-int fanAssistSpeed = 40;
-#else
 int fanAssistSpeed = 50; // default fan speed
-#endif
+
 
 // do not edit below here unless you know what you are doing!
+#ifdef DEBUG
+#include <MemoryFree.h>
+#endif
+const unsigned int offsetFanSpeed_ = 30*16; // one byte
+const unsigned int offsetProfileNum_ = 30*16+1;//one byte
+
 
 int profileNumber = 0;
 
@@ -108,9 +116,13 @@ MenuItemInteger peak_duration ("Peak time (S)", &peakDuration,5,60,false);
 MenuItemDouble rampDown_rate ("Ramp down rate (C/S)", &rampDownRate, 0.1, 10);
 
 MenuItemSubMenu profileLoadSave ("Load/Save Profile");
-MenuItemInteger profile_number ("Profile Number",  &profileNumber, 0, 31,true);
+MenuItemInteger profile_number ("Profile Number",  &profileNumber, 0, 29,true);
 MenuItemAction save_profile ("Save profile",  &saveProfile);
 MenuItemAction load_profile ("Load profile",  &loadProfile);
+
+MenuItemSubMenu fan_control ("Fan settings");
+MenuItemInteger idle_speed ("Idle speed",  &fanAssistSpeed, 0, 70,false);
+MenuItemAction save_fan_speed ("Save",  &saveFanSpeed);
 
 MenuItemAction factory_reset ("Factory Reset",  &factoryReset);
 
@@ -143,6 +155,7 @@ double rampRate = 0;
 
 double rateOfRise = 0;
 
+double temp1, temp2;
 double readingsT1[NUMREADINGS];                // the readings used to make a stable temp rolling average
 double readingsT2[NUMREADINGS];
 unsigned short index = 0;                            // the index of the current reading
@@ -355,6 +368,11 @@ void setup()
   profile_number.addItem(&load_profile);
   load_profile.addItem(&save_profile);
 
+  // fan speed control
+  control.addItem(&fan_control);
+  fan_control.addChild(&idle_speed);
+  idle_speed.addItem(&save_fan_speed);
+
   control.addItem(&factory_reset);
 
   /*
@@ -376,14 +394,14 @@ void setup()
 #endif
 
   if(firstRun()){
-    for(int i=0; i<32;i++){ // save a bunch of copies of the deafult parameters into EEPROM
-      saveParameters(i);
-    }
+    factoryReset();
   } 
   else {
     loadParameters(0); // on normal startups load the first profile
   }
 
+  loadLastUsedProfile();
+  loadFanSpeed();
 
   // setting up SPI bus  
   digitalWrite(chipSelect1, HIGH);
@@ -436,7 +454,7 @@ void setup()
   lcd.setCursor(0,1);
   lcd.print(" Reflow controller");
   lcd.setCursor(0,2);
-  lcd.print("      v2.1");
+  lcd.print("      v2.2");
 #ifdef OPENDRAWER
   lcd.setCursor(0,3);
   lcd.print(" Albert Lim version");
@@ -450,9 +468,12 @@ void loop()
 {
 
   if(millis() - lastUpdate >= 100){
+    #ifdef DEBUG
+    Serial.print("freeMemory()=");
+    Serial.println(freeMemory());
+    #endif
     lastUpdate = millis();
-
-    double temp1, temp2;
+    
     temp1 = getAirTemperature1();
     temp2 = getAirTemperature2();
     // keep a rolling average of the temp
@@ -690,11 +711,17 @@ void loop()
 
 
 void cycleStart(){
+  
   startTime = millis();
   currentState = rampToSoak;
 #ifdef OPENDRAWER
   openedDrawer=false;
 #endif
+  lcd.clear();
+  lcd.print("Starting cycle ");
+  lcd.print(profileNumber);
+  delay(1000);
+  
 }
 
 void saveProfile(){
@@ -731,7 +758,7 @@ void loadProfile(){
   lcd.clear();
   lcd.print("Loading profile ");
   lcd.print(profileNumber);
-
+  saveLastUsedProfile();
 
 #ifdef DEBUG
 
@@ -883,9 +910,48 @@ void factoryReset(){
   lcd.print("Resetting...");
 
   // then save the same profile settings into all slots
-  for(int i =0; i< 32; i++){
+  for(int i =0; i< 30; i++){
     saveParameters(i);
   }
+  fanAssistSpeed = 50;
+  saveFanSpeed();
+  profileNumber = 0;
+  saveLastUsedProfile();
   delay(500);
+}
+
+void saveFanSpeed(){
+  unsigned int temp = (unsigned int) fanAssistSpeed;
+  EEPROM.write(offsetFanSpeed_,(temp & 255));
+  //Serial.print("Saving fan speed :");
+  //Serial.println(temp);
+  lcd.clear();
+  lcd.print("Saving...");
+  delay(250);
+
+}
+
+void loadFanSpeed(){
+  unsigned int temp = 0;
+  temp = EEPROM.read(offsetFanSpeed_);
+  fanAssistSpeed = (int) temp;
+  //Serial.print("Loaded fan speed :");
+  //Serial.println(fanAssistSpeed);
+}
+
+void saveLastUsedProfile(){
+  unsigned int temp = (unsigned int) profileNumber;
+  EEPROM.write(offsetProfileNum_,(temp & 255));
+  //Serial.print("Saving active profile number :");
+  //Serial.println(temp);
+
+}
+
+void loadLastUsedProfile(){
+  unsigned int temp = 0;
+  temp = EEPROM.read(offsetProfileNum_);
+  profileNumber = (int) temp;
+  //Serial.print("Loaded last used profile number :");
+  //Serial.println(temp);
 }
 
