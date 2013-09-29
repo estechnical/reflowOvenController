@@ -64,7 +64,7 @@ void LCDMenu::poll () {
 	
 	// go through the five bits that correspond to keys and decide if any key is pressed (only care about the first we find)
 	// keys are pulled up and debounced, low bit means key is pressed.
-	
+	unsigned int lastCount = counter; // keep track of the last state of the counter, if counter has changed we increment the value again
 	if(fourkeys){
 		if((pd &1) == 0){ 
 			pressedKey = up;
@@ -92,8 +92,13 @@ void LCDMenu::poll () {
 			pressedKey = none;
 		}
 	}
+	if(pressedKey == lastKey && pressedKey != none){ 
+		counter++;
+	} else {
+		counter = 0;
+	}
 	
-	if(pressedKey != lastKey){
+	if((pressedKey != lastKey) ||((counter % 2 == 0) && (counter >3))){ 
 	lastKey = pressedKey;
 		switch (pressedKey) {
 		case up:
