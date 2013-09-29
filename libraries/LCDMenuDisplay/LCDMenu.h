@@ -37,6 +37,7 @@ private:
 	buttons pressedKey, lastKey;
 	LiquidCrystal *LCD;
 	boolean fourkeys;
+	unsigned int counter;
 	
 };
 
