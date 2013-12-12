@@ -14,8 +14,8 @@
 
 //#define DEBUG
 
-// for Albert Lim's version, extra features: outputs a pulse on the TTL serial port to open the drawer automatically at the beginning
-of ramp down
+// for Albert Lim's version, extra features: outputs a pulse on the TTL serial 
+// port to open the drawer automatically at the beginning of ramp down
 //#define OPENDRAWER 
 
 // data type for the values used in the reflow profile
