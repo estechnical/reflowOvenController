@@ -48,7 +48,7 @@
 
 // the parameters that are initialised here are saved as the default profiles into the eeprom on first run
 // the all important reflow curve variables:
-int idleTemp = 20;
+int idleTemp = 50;
 int soakTemp = 130;
 int soakDuration = 80; //seconds
 int peakTemp = 220; // peak temperature (careful!)
@@ -68,8 +68,8 @@ int fanAssistSpeed = 50; // default fan speed
 #ifdef DEBUG
 #include <MemoryFree.h>
 #endif
-const unsigned int offsetFanSpeed_ = 30*16; // one byte
-const unsigned int offsetProfileNum_ = 30*16+1;//one byte
+const unsigned int offsetFanSpeed_ = 30*16+1; // one byte
+const unsigned int offsetProfileNum_ = 30*16+2;//one byte
 
 
 int profileNumber = 0;
@@ -132,7 +132,7 @@ double Setpoint, Input, Output;
 unsigned int WindowSize = 100;
 unsigned long windowStartTime;
 
-unsigned long startTime, stateChangedTime = 0, lastUpdate = 0, lastDisplayUpdate = 0; // a handful of timer variables
+unsigned long startTime, stateChangedTime = 0, lastUpdate = 0, lastDisplayUpdate = 0, lastSerialOutput = 0; // a handful of timer variables
 
 //volatile boolean cycleStart = false;
 
@@ -299,47 +299,58 @@ boolean getJumperState(){
 
 void updateDisplay(){
   lcd.clear();
-  switch(currentState){
-  case idle:
-    lcd.print("idle ");
-    break;
-  case rampToSoak:
-    lcd.print("ramp ");
-    break;
-  case soak:
-    lcd.print("soak ");
-    break;
-  case rampUp:
-    lcd.print("rampUp ");
-    break;
-  case peak:
-    lcd.print("peak ");
-    break;
-  case rampDown:
-    lcd.print("rampDown ");
-    break;
-  case coolDown:
-    lcd.print("coolDown ");
-    break;
-  } 
+
   lcd.print(averageT1,1);
   lcd.print((char)223);// degrees symbol!
+  lcd.print("C ");
+
+  lcd.print(averageT2,1);
+  lcd.print((char)223);// degrees symbol!
   lcd.print("C");
+
   if(currentState!=idle){
     lcd.setCursor(16,0);
     lcd.print((millis() - startTime)/1000);
     lcd.print("S");
   }
+
   lcd.setCursor(0,1);
-  lcd.print("Setpoint = ");
+  switch(currentState){
+  case idle:
+    lcd.print("Idle ");
+    break;
+  case rampToSoak:
+    lcd.print("Ramp ");
+    break;
+  case soak:
+    lcd.print("Soak ");
+    break;
+  case rampUp:
+    lcd.print("Ramp Up ");
+    break;
+  case peak:
+    lcd.print("Peak ");
+    break;
+  case rampDown:
+    lcd.print("Ramp Down ");
+    break;
+  case coolDown:
+    lcd.print("Cool Down ");
+    break;
+  }
+
+  lcd.print("Sp=");
   lcd.print(Setpoint,1);
   lcd.print((char)223);// degrees symbol!
   lcd.print("C");
   lcd.setCursor(0,2);
-  lcd.print("Output = ");
-  lcd.print((int)Output);
+  lcd.print("Heat=");
+  lcd.print((int)heaterValue);
+  lcd.setCursor(10,2);
+  lcd.print("Fan=");
+  lcd.print((int)fanValue);
   lcd.setCursor(0,3);
-  lcd.print("Ramp = ");
+  lcd.print("Ramp=");
   lcd.print(rampRate,1);
   lcd.print((char)223);// degrees symbol!
   lcd.print("C/S");
@@ -454,7 +465,7 @@ void setup()
   lcd.setCursor(0,1);
   lcd.print(" Reflow controller");
   lcd.setCursor(0,2);
-  lcd.print("      v2.2");
+  lcd.print("      v2.3");
 #ifdef OPENDRAWER
   lcd.setCursor(0,3);
   lcd.print(" Albert Lim version");
@@ -468,12 +479,12 @@ void loop()
 {
 
   if(millis() - lastUpdate >= 100){
-    #ifdef DEBUG
+#ifdef DEBUG
     Serial.print("freeMemory()=");
     Serial.println(freeMemory());
-    #endif
+#endif
     lastUpdate = millis();
-    
+
     temp1 = getAirTemperature1();
     temp2 = getAirTemperature2();
     // keep a rolling average of the temp
@@ -515,37 +526,38 @@ void loop()
     else {
       if(millis() - lastDisplayUpdate > 250){ // 4hz display during reflow cycle
         lastDisplayUpdate = millis();
-        if(currentState != idle){
-          updateDisplay();
-        } 
-        Serial.write(currentState); // see the enum for the definition of the states
+
+        updateDisplay();
 
       }
     }
 
+    if(millis() - lastSerialOutput > 250){
+      lastSerialOutput = millis();
 
-    if (currentState != idle)
-    {
-      Serial.print((millis() - startTime));
-      Serial.print(",");
-      Serial.print((int)currentState);
-      Serial.print(",");
-      Serial.print(Setpoint); 
-      Serial.print(",");
-      Serial.print(heaterValue); 
-      Serial.print(",");
-      Serial.print(fanValue); 
-      Serial.print(",");
-      Serial.print(averageT1); 
-      Serial.print(",");
-      Serial.println(averageT2); 
-    }
-    else 
-    {
-      Serial.print("0,0,0,0,0,"); 
-      Serial.print(averageT1); 
-      Serial.print(",");
-      Serial.println(averageT2); 
+      if (currentState == idle)
+      {
+        Serial.print("0,0,0,0,0,"); 
+        Serial.print(averageT1); 
+        Serial.print(",");
+        Serial.println(averageT2); 
+      } 
+      else {
+
+        Serial.print((millis() - startTime));
+        Serial.print(",");
+        Serial.print((int)currentState);
+        Serial.print(",");
+        Serial.print(Setpoint); 
+        Serial.print(",");
+        Serial.print(heaterValue); 
+        Serial.print(",");
+        Serial.print(fanValue); 
+        Serial.print(",");
+        Serial.print(averageT1); 
+        Serial.print(",");
+        Serial.println(averageT2);
+      }
     }
 
 
@@ -711,7 +723,7 @@ void loop()
 
 
 void cycleStart(){
-  
+
   startTime = millis();
   currentState = rampToSoak;
 #ifdef OPENDRAWER
@@ -721,7 +733,7 @@ void cycleStart(){
   lcd.print("Starting cycle ");
   lcd.print(profileNumber);
   delay(1000);
-  
+
 }
 
 void saveProfile(){
@@ -954,4 +966,8 @@ void loadLastUsedProfile(){
   //Serial.print("Loaded last used profile number :");
   //Serial.println(temp);
 }
+
+
+
+
 

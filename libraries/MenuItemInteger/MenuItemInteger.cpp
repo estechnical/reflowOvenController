@@ -10,35 +10,54 @@
 #include "Arduino.h"
 #include "MenuItemInteger.h"
 
-MenuItemInteger::MenuItemInteger (char *newName, int *targetInt, int min , int max, bool rollover) {	
-	strncpy (this->Name, newName, 20);
-	// Terminate name string if it's too long for the whole string to have fitted
-	if (strlen(newName) > 20) {
-		this->Name[19] = '\0';
-	}
-	
-	// strcpy(this->Name, "Foo Bar");
+MenuItemInteger::MenuItemInteger () {	
+	this->Name = NULL;
+	this->Name_P = NULL;
+	this->Next = NULL;
+	this->Previous = NULL;
+	this->TargetInteger = NULL;
+}
+
+MenuItemInteger::MenuItemInteger (const char *newName, int *targetInt, const int min , const int max, const bool rollover) {	
+	this->Name = newName;
+	this->Name_P = NULL;
 	this->Next = NULL;
 	this->Previous = NULL;
 	this->TargetInteger = targetInt;
 	myMin = min;
 	myMax = max;
 	rollOver = rollover;
-	
+}
+
+void MenuItemInteger::init (const char *newName, int *targetInt, const int min , const int max, const bool rollover) {	
+	this->Name = newName;
+	this->TargetInteger = targetInt;
+	myMin = min;
+	myMax = max;
+	rollOver = rollover;
+}
+
+void MenuItemInteger::init (const __FlashStringHelper *newName_P, int *targetInt, const int min , const int max, const bool rollover) {	
+	this->Name_P = newName_P;
+	this->TargetInteger = targetInt;
+	myMin = min;
+	myMax = max;
+	rollOver = rollover;
 }
 
 void MenuItemInteger::select (MenuDisplay *controller) {
 	if (controller->Editing == NULL) {
 		controller->Editing = this;
-		this->CurrentValue = *(this->TargetInteger);
-	} else {
-		*(this->TargetInteger) = this->CurrentValue;
+		CurrentValue = *(this->TargetInteger);
+	}
+	else {
+		*(this->TargetInteger) = CurrentValue;
 		controller->Editing = NULL;
 	}
 }
 
 void MenuItemInteger::getValueString (char *String) {
-	sprintf (String, "%d", this->CurrentValue);
+	sprintf_P (String, (const char*)F("%d"), CurrentValue);
 	return;
 }
 
@@ -53,19 +72,21 @@ void MenuItemInteger::exit (MenuDisplay *controller) {
 }
 
 void MenuItemInteger::inc (MenuDisplay *controller) {
-	this->CurrentValue++;
+	CurrentValue++;
 	if(rollOver){
 		if(CurrentValue > myMax) CurrentValue = myMin;
-	} else {
+	}
+	else {
 		if(CurrentValue > myMax) CurrentValue = myMax;
 	}
 }
 
 void MenuItemInteger::dec (MenuDisplay *controller) {
-	this->CurrentValue--;
+	CurrentValue--;
 	if(rollOver){
 		if(CurrentValue < myMin) CurrentValue = myMax;
-	} else {
+	}
+	else {
 		if(CurrentValue < myMin) CurrentValue = myMin;
 	}
 }

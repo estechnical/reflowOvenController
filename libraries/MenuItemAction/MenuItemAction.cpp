@@ -10,21 +10,36 @@
 #include "Arduino.h"
 #include "MenuItemAction.h"
 
-MenuItemAction::MenuItemAction (char *newName, void (*myAction)()) {	
-	strncpy (this->Name, newName, 20);
-	// Terminate name string if it's too long for the whole string to have fitted
-	if (strlen(newName) > 20) {
-		this->Name[19] = '\0';
-	}
-	// strcpy(this->Name, "Foo Bar");
+MenuItemAction::MenuItemAction () {	
+	this->Name = NULL;
+	this->Name_P = NULL;
 	this->Next = NULL;
 	this->Previous = NULL;
+}
+
+MenuItemAction::MenuItemAction (const char *newName, void (*myAction)()) {	
+	MenuItemAction();
+	this->Name = newName;
+	this->Name_P = NULL;
+	this->Next = NULL;
+	this->Previous = NULL;
+	TargetAction = myAction;
+}
+
+void MenuItemAction::init (const char *newName, void (*myAction)()) {	
+	this->Name = newName;
+	TargetAction = myAction;
+}
+
+void MenuItemAction::init (const __FlashStringHelper *newName_P, void (*myAction)()) {	
+	this->Name_P = newName_P;
 	TargetAction = myAction;
 }
 
 void MenuItemAction::select (MenuDisplay *controller) {
 	(*TargetAction) ();
 }
+
 void MenuItemAction::exit (MenuDisplay *controller) {
 	if (controller->Editing != NULL) {
 		controller->Editing = NULL;

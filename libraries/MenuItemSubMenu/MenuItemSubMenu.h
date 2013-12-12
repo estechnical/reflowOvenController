@@ -15,8 +15,10 @@
 
 class MenuItemSubMenu: public MenuItem {
 public: 
-	MenuItemSubMenu (char *newName);
-	MenuItem *Child;
+	MenuItemSubMenu (void);
+	MenuItemSubMenu (const char *newName);
+	void init (const char *newName);
+	void init (const __FlashStringHelper *newName_P);
 	void select(MenuDisplay *controller);
 	void exit(MenuDisplay *controller);
 	void inc(MenuDisplay *controller);
@@ -26,6 +28,9 @@ public:
 //	void exit(MenuDisplay *controller);
 	void addChild(MenuItem *newChild);
 //	void init();
+
+private:
+	MenuItem *Child;
 };
 
 #endif

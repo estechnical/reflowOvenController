@@ -16,15 +16,12 @@
 class MenuItemSelectOption {
 public: 
 	int Value;
-	char Name[20];
+	char *Name;
 	MenuItemSelectOption *Next;
 };
 
 class MenuItemSelect: public MenuItem {
 public: 
-	int *TargetInteger;
-	MenuItemSelectOption *RootOption;
-	MenuItemSelectOption *CurrentOption;
 	MenuItemSelect (char *newName, int *targetInt);
 	void AddOption (char *Name, int Value);
 	void getValueString (char *);
@@ -32,7 +29,12 @@ public:
 	void exit(MenuDisplay *controller);
 	void inc(MenuDisplay *controller);
 	void dec(MenuDisplay *controller);
-	
+
+private:
+	int *TargetInteger;
+	MenuItemSelectOption *RootOption;
+	MenuItemSelectOption *CurrentOption;
+
 };
 
 #endif

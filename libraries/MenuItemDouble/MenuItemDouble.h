@@ -15,16 +15,20 @@
 
 class MenuItemDouble: public MenuItem {
 public: 
-	double *TargetDouble;
-	double CurrentValue;
-	double myMin, myMax;
-	MenuItemDouble (char *newName, double *targetDouble, double min, double max);
+	MenuItemDouble (void);
+	MenuItemDouble (const char *newName, double *targetDouble, const double min, const double max);
+	void init(const char *newName, double *targetDouble, const double min, const double max);
+	void init(const __FlashStringHelper *newName_P, double *targetDouble, const double min, const double max);
 	void getValueString (char *);
 	void select(MenuDisplay *controller);
 	void exit(MenuDisplay *controller);
 	void inc(MenuDisplay *controller);
 	void dec(MenuDisplay *controller);
 	
+private:
+	double *TargetDouble;
+	double CurrentValue;
+	double myMin, myMax;
 };
 
 #endif

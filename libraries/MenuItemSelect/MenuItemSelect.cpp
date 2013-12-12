@@ -11,12 +11,7 @@
 #include "MenuItemSelect.h"
 
 MenuItemSelect::MenuItemSelect (char *newName, int *targetInt) {	
-	strncpy (this->Name, newName, 20);
-	// Terminate name string if it's too long for the whole string to have fitted
-	if (strlen(newName) > 20) {
-		this->Name[19] = '\0';
-	}
-	// strcpy(this->Name, "Foo Bar");
+	this->Name = newName;
 	this->Next = NULL;
 	this->Previous = NULL;
 	this->TargetInteger = targetInt;
@@ -33,10 +28,7 @@ void MenuItemSelect::AddOption (char *Name, int Value) {
 	}
 	*Pointer = new MenuItemSelectOption;
 	(*Pointer)->Next = NULL;
-	strncpy ((*Pointer)->Name, Name, 20);
-	if (strlen((*Pointer)->Name) > 19) {
-		(*Pointer)->Name[19] = '\0';
-	}
+	(*Pointer)->Name = Name;
 	(*Pointer)->Value = Value;
 	if (this->RootOption == NULL) {
 		this->RootOption = *Pointer;
@@ -56,9 +48,6 @@ void MenuItemSelect::select (MenuDisplay *controller) {
 
 void MenuItemSelect::getValueString (char *String) {
 	strncpy (String, this->CurrentOption->Name, 20);
-	if (strlen(this->CurrentOption->Name) > 19) {
-		String[19] = '\0';
-	}
 }
 
 void MenuItemSelect::exit (MenuDisplay *controller) {

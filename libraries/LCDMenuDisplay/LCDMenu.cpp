@@ -28,6 +28,7 @@ void LCDMenu::init (MenuItem *initial, LiquidCrystal *lcd, boolean fourkey) {
 		
 	this->Current = initial;
 	this->Editing = NULL;
+	update = true;
 }
   
 void LCDMenu::showCurrent () {
@@ -99,6 +100,7 @@ void LCDMenu::poll () {
 	}
 	
 	if((pressedKey != lastKey) ||((counter % 2 == 0) && (counter >3))){ 
+	update = true;
 	lastKey = pressedKey;
 		switch (pressedKey) {
 		case up:
@@ -124,13 +126,15 @@ void LCDMenu::poll () {
 		case none:
 			break;
 		}
-	}		
-	if (this->Editing == NULL) {
-		this->showCurrent();
-	} else {
-		this->showCurrentValue();
 	}
-	
+	if(update){
+		update = false;		
+		if (this->Editing == NULL) {
+			this->showCurrent();
+		} else {
+			this->showCurrentValue();
+		}
+	}
 }
 
   

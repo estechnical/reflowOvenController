@@ -11,16 +11,33 @@
 #include "Arduino.h"
 #include "MenuItemDouble.h"
 
-
-MenuItemDouble::MenuItemDouble (char *newName, double *targetDouble, double min, double max) {	
-	strncpy (this->Name, newName, 22);
-	// Terminate name string if it's too long for the whole string to have fitted
-	if (strlen(newName) >= 22) {
-		this->Name[21] = '\0';
-	}
-	// strcpy(this->Name, "Foo Bar");
+MenuItemDouble::MenuItemDouble () {	
+	this->Name = NULL;
+	this->Name_P = NULL;
 	this->Next = NULL;
 	this->Previous = NULL;
+	this->TargetDouble = NULL;
+}
+
+MenuItemDouble::MenuItemDouble (const char *newName, double *targetDouble, const double min, const double max) {	
+	this->Name = newName;
+	this->Name_P = NULL;
+	this->Next = NULL;
+	this->Previous = NULL;
+	this->TargetDouble = targetDouble;
+	myMin = min;
+	myMax = max;
+}
+
+void MenuItemDouble::init (const char *newName, double *targetDouble, const double min, const double max) {	
+	this->Name = newName;
+	this->TargetDouble = targetDouble;
+	myMin = min;
+	myMax = max;
+}
+
+void MenuItemDouble::init (const __FlashStringHelper *newName_P, double *targetDouble, const double min, const double max) {	
+	this->Name_P = newName_P;
 	this->TargetDouble = targetDouble;
 	myMin = min;
 	myMax = max;
@@ -29,16 +46,17 @@ MenuItemDouble::MenuItemDouble (char *newName, double *targetDouble, double min,
 void MenuItemDouble::select (MenuDisplay *controller) {
 	if (controller->Editing == NULL) {
 		controller->Editing = this;
-		this->CurrentValue = *(this->TargetDouble);
+		CurrentValue = *(this->TargetDouble);
 	} else {
-		*(this->TargetDouble) = this->CurrentValue;
+		*(this->TargetDouble) = CurrentValue;
 		controller->Editing = NULL;
 	}
+	return;
 }
 
 void MenuItemDouble::getValueString (char *String) {
-	int fraction = (this->CurrentValue - ((int) this->CurrentValue)) * 10;
-	sprintf (String, "%d.%d", (int)this->CurrentValue, fraction);// sprintf doesn't do doubles/float on arduino
+	int fraction = (CurrentValue - (int) CurrentValue) * 10;
+	sprintf_P (String, (const char*)F("%d.%d"), (int)CurrentValue, fraction);// sprintf doesn't do doubles/float on arduino
 	//Serial.println(this->CurrentValue);
 	return;
 }
@@ -46,22 +64,25 @@ void MenuItemDouble::getValueString (char *String) {
 void MenuItemDouble::exit (MenuDisplay *controller) {
 	if (controller->Editing != NULL) {
 		controller->Editing = NULL;
-	} else {
+	}
+	else {
 		if (this->Parent != NULL) {
 			controller->Current = this->Parent;
 		}
 	}
+	return;
 }
 
 void MenuItemDouble::inc (MenuDisplay *controller) {
-	this->CurrentValue += 0.10;
-	if(CurrentValue > myMax) CurrentValue = myMax;
-	
+	CurrentValue += (double)0.1;
+	if(CurrentValue > myMax)
+		CurrentValue = myMax;
 }
 
 void MenuItemDouble::dec (MenuDisplay *controller) {
-	this->CurrentValue -= 0.10;
-	if(CurrentValue < myMin) CurrentValue = myMin;
+	CurrentValue -= (double)0.1;
+	if(CurrentValue < myMin)
+		(CurrentValue = myMin);
 }
 
 

@@ -20,6 +20,7 @@ public:
 	void showCurrentValue();
 	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey);
 	void poll();
+	bool update;
 	
 private:
 	// the pins that we poll for button presses

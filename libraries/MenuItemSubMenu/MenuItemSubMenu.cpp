@@ -10,15 +10,26 @@
 #include "Arduino.h"
 #include "MenuItemSubMenu.h"
 
-MenuItemSubMenu	::MenuItemSubMenu (char *newName) {	
-	strncpy (this->Name, newName, 22);
-	// Terminate name string if it's too long for the whole string to have fitted
-	if (strlen(newName) > 22) {
-		this->Name[21] = '\0';
-	}
-	// strcpy(this->Name, "Foo Bar");
+MenuItemSubMenu::MenuItemSubMenu () {	
+	this->Name = NULL;
+	this->Name_P = NULL;
 	this->Next = NULL;
 	this->Previous = NULL;
+}
+
+MenuItemSubMenu::MenuItemSubMenu (const char *newName) {	
+	this->Name = newName;
+	this->Name_P = NULL;
+	this->Next = NULL;
+	this->Previous = NULL;
+}
+
+void MenuItemSubMenu::init (const char *newName) {	
+	this->Name = newName;
+}
+
+void MenuItemSubMenu::init (const __FlashStringHelper *newName_P)  {	
+	this->Name_P = newName_P;
 }
 
 void MenuItemSubMenu::addChild (MenuItem *newChild) {
@@ -46,5 +57,6 @@ void MenuItemSubMenu::dec(MenuDisplay *controller) {
 }
 
 void MenuItemSubMenu::getValueString (char *string) {
+	string="";
 	return;
 }

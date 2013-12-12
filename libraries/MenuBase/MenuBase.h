@@ -20,7 +20,8 @@ public:
   MenuItem *Previous;
   MenuItem *Next;
   MenuItem *Parent;
-  char Name[22];
+  const char *Name;
+  const __FlashStringHelper *Name_P; 
 //  int afterName;
 
   virtual void getValueString (char *string) = 0;
