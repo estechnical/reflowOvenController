@@ -46,20 +46,20 @@
 
 //#define DEBUG
 
-// the parameters that are initialised here are saved as the default profiles into the eeprom on first run
-// the all important reflow curve variables:
+struct profileValues {
+  int soakTemp;
+  int soakDuration;
+  int peakTemp;
+  int peakDuration;
+  double rampUpRate;
+  double rampDownRate;
+
+};
+
+profileValues activeProfile;
+
+
 int idleTemp = 50;
-int soakTemp = 130;
-int soakDuration = 80; //seconds
-int peakTemp = 220; // peak temperature (careful!)
-int peakDuration = 40; // seconds - this is not necessarily the time above liquidous - this should be confirmed carefully with a datalogger!
-
-double rampUpRate = 0.80; // degrees celcius per second, this is used during transition to soak temp and to peak temp
-double rampDownRate = 2.0; // the rate the PID controller for the fan aims to cool down to the idle setpoint 
-// bear in mind that all these ramp values are measured at one point, by choosing slower ramps, we gain more even control of the 
-// temprature this is the saving grace of the samll IR oven, slowly ramping the temperature as measured somewhere near the edge 
-// of the soldering area gives good results, the peak temperature is kept stable by the gentle control of the ramp rate.
-
 
 int fanAssistSpeed = 50; // default fan speed
 
@@ -79,8 +79,8 @@ boolean thermocoupleOneActive = true; // this is used to keep track of which the
 //SPI Bus
 #define DATAOUT 11//MOSI
 #define SPICLOCK  13//sck
-int chipSelect1 = 10;
-int chipSelect2 = 2;
+#define CHIPSELECT1 10
+#define CHIPSELECT2 2
 byte clr;
 
 #include <EEPROM.h>
@@ -95,7 +95,6 @@ LiquidCrystal lcd(19,18,17,16,15,14);
 #include <MenuItemInteger.h>
 #include <MenuItemDouble.h>
 #include <MenuItemAction.h>
-//#include <MenuItemActionInteger.h>
 #include <MenuBase.h>
 #include <LCDMenu.h>
 #include <MenuItemSubMenu.h>
@@ -104,27 +103,26 @@ LCDMenu myMenu;
 
 // reflow profile menu items
 
+MenuItemAction control;
 
-MenuItemAction control ("Cycle start",  &cycleStart);
+MenuItemSubMenu profile;
+MenuItemDouble rampUp_rate; 
+MenuItemInteger soak_temp;
+MenuItemInteger soak_duration;
+MenuItemInteger peak_temp;
+MenuItemInteger peak_duration;
+MenuItemDouble rampDown_rate;
 
-MenuItemSubMenu profile ("Edit Profile");
-MenuItemDouble rampUp_rate ("Ramp up rate (C/S)", &rampUpRate, 0.1, 5.0);
-MenuItemInteger soak_temp ("Soak temp (C)",  &soakTemp, 50, 180,false);
-MenuItemInteger soak_duration ("Soak time (S)", &soakDuration,10,300,false);
-MenuItemInteger peak_temp ("Peak temp (C)", &peakTemp,100,300,false);
-MenuItemInteger peak_duration ("Peak time (S)", &peakDuration,5,60,false);
-MenuItemDouble rampDown_rate ("Ramp down rate (C/S)", &rampDownRate, 0.1, 10);
+MenuItemSubMenu profileLoadSave;
+MenuItemInteger profile_number;
+MenuItemAction save_profile;
+MenuItemAction load_profile;
 
-MenuItemSubMenu profileLoadSave ("Load/Save Profile");
-MenuItemInteger profile_number ("Profile Number",  &profileNumber, 0, 29,true);
-MenuItemAction save_profile ("Save profile",  &saveProfile);
-MenuItemAction load_profile ("Load profile",  &loadProfile);
+MenuItemSubMenu fan_control;
+MenuItemInteger idle_speed;
+MenuItemAction save_fan_speed;
 
-MenuItemSubMenu fan_control ("Fan settings");
-MenuItemInteger idle_speed ("Idle speed",  &fanAssistSpeed, 0, 70,false);
-MenuItemAction save_fan_speed ("Save",  &saveFanSpeed);
-
-MenuItemAction factory_reset ("Factory Reset",  &factoryReset);
+MenuItemAction factory_reset;
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
@@ -277,16 +275,16 @@ double getTemperature(){
 
 
 double getAirTemperature1(){
-  digitalWrite(chipSelect1, LOW);
+  digitalWrite(CHIPSELECT1, LOW);
   double temp = getTemperature();
-  digitalWrite(chipSelect1, HIGH);
+  digitalWrite(CHIPSELECT1, HIGH);
   return temp;
 }
 
 double getAirTemperature2(){
-  digitalWrite(chipSelect2, LOW);
+  digitalWrite(CHIPSELECT2, LOW);
   double temp = getTemperature();
-  digitalWrite(chipSelect2, HIGH);
+  digitalWrite(CHIPSELECT2, HIGH);
   return temp;
 }
 
@@ -360,10 +358,28 @@ void updateDisplay(){
 
 void setup()
 {
-
   boolean state = getJumperState();
   myMenu.init(&control, &lcd, state);
 
+  // initialise the menu strings, now stored in the progmem
+  control.init (F("Cycle start"),  &cycleStart);
+  profile.init (F("Edit Profile"));
+  rampUp_rate.init(F("Ramp up rate (C/S)"), &activeProfile.rampUpRate, 0.1, 5.0);
+  soak_temp.init(F("Soak temp (C)"),  &activeProfile.soakTemp, 50, 180,false);
+  soak_duration.init(F("Soak time (S)"), &activeProfile.soakDuration,10,300,false);
+  peak_temp.init(F("Peak temp (C)"), &activeProfile.peakTemp,100,300,false);
+  peak_duration.init(F("Peak time (S)"), &activeProfile.peakDuration,5,60,false);
+  rampDown_rate.init(F("Ramp down rate (C/S)"), &activeProfile.rampDownRate, 0.1, 10);
+  profileLoadSave.init(F("Load/Save Profile"));
+  profile_number.init(F("Profile number"),  &profileNumber, 0, 29,true);
+  save_profile.init(F("Save"),  &saveProfile);
+  load_profile.init(F("Load"),  &loadProfile);
+  fan_control.init(F("Fan settings"));
+  idle_speed.init(F("Idle speed"),  &fanAssistSpeed, 0, 70,false);
+  save_fan_speed.init(F("Save"),  &saveFanSpeed);
+  factory_reset.init(F("Factory Reset"),  &factoryReset);
+
+  // initialise the menu structure
   control.addItem(&profile);
   profile.addChild(&rampUp_rate);
   rampUp_rate.addItem(&soak_temp);
@@ -373,11 +389,12 @@ void setup()
   peak_duration.addItem(&rampDown_rate);
 
 
-  //not sure about here...
+  //old one
   control.addItem(&profileLoadSave);
   profileLoadSave.addChild(&profile_number);
   profile_number.addItem(&load_profile);
   load_profile.addItem(&save_profile);
+
 
   // fan speed control
   control.addItem(&fan_control);
@@ -386,12 +403,6 @@ void setup()
 
   control.addItem(&factory_reset);
 
-  /*
-  MenuItemSubMenu profileLoadSave ("Load/Save Profile");
-   MenuItemInteger profile_number ("Profile Number)",  &profileNumber);
-   MenuItemAction save_profile ("Save profile",  &cycleStart);
-   MenuItemAction load_profile ("Load profile",  &cycleStart);
-   */
 
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);
@@ -415,10 +426,10 @@ void setup()
   loadFanSpeed();
 
   // setting up SPI bus  
-  digitalWrite(chipSelect1, HIGH);
-  digitalWrite(chipSelect2, HIGH);
-  pinMode(chipSelect1, OUTPUT);
-  pinMode(chipSelect2, OUTPUT);
+  digitalWrite(CHIPSELECT1, HIGH);
+  digitalWrite(CHIPSELECT2, HIGH);
+  pinMode(CHIPSELECT1, OUTPUT);
+  pinMode(CHIPSELECT2, OUTPUT);
   pinMode(DATAOUT, OUTPUT);
   pinMode(SPICLOCK,OUTPUT);
   //pinMode(10,OUTPUT);
@@ -579,11 +590,9 @@ void loop()
 
     switch(currentState){
     case idle:
-      // using air temp sensors in top of case
       break;
 
     case rampToSoak:
-      // using air temp sensors in top of case
       if(stateChanged){
         PID.SetMode(MANUAL);
         Output = 50;
@@ -593,19 +602,19 @@ void loop()
         Setpoint = airTemp[NUMREADINGS-1];
         stateChanged = false;
       }    
-      Setpoint += (rampUpRate/10); // target set ramp up rate
+      Setpoint += (activeProfile.rampUpRate/10); // target set ramp up rate
 
-      if(Setpoint >= soakTemp - 1){ // at less than 3degrees per second rise, 15 degrees gives 5 seconds to transition into PID controlled set temp
+      if(Setpoint >= activeProfile.soakTemp - 1){
         currentState=soak;
       }
       break;
 
     case soak:
       if(stateChanged){
-        Setpoint = soakTemp;
+        Setpoint = activeProfile.soakTemp;
         stateChanged = false;
       }
-      if(millis() - stateChangedTime >= (unsigned long) soakDuration*1000){
+      if(millis() - stateChangedTime >= (unsigned long) activeProfile.soakDuration*1000){
         currentState = rampUp;
       }
       break;
@@ -615,21 +624,21 @@ void loop()
         stateChanged = false;
       }
 
-      Setpoint += (rampUpRate/10); // target set ramp up rate
+      Setpoint += (activeProfile.rampUpRate/10); // target set ramp up rate
 
-      if(Setpoint > peakTemp) Setpoint = peakTemp;
-      if(Setpoint >= peakTemp - 1){ // seems to take arodun 8 degrees rise to tail off to 0 rise
+      if(Setpoint >= activeProfile.peakTemp - 1){ // seems to take arodun 8 degrees rise to tail off to 0 rise
+        Setpoint = activeProfile.peakTemp;
         currentState = peak;
       }
       break;
 
     case peak:
       if(stateChanged){
-        Setpoint = peakTemp;
+        Setpoint = activeProfile.peakTemp;
         stateChanged = false;
       }
 
-      if(millis() - stateChangedTime >= (unsigned long) peakDuration*1000){
+      if(millis() - stateChangedTime >= (unsigned long) activeProfile.peakDuration*1000){
         currentState = rampDown;
       }
       break;
@@ -639,7 +648,7 @@ void loop()
         PID.SetControllerDirection(REVERSE);
         PID.SetTunings(fanKp,fanKi, fanKd);
         stateChanged = false;
-        Setpoint = peakTemp -15; // get it all going with a bit of a kick! v sluggish here otherwise, too hot too long
+        Setpoint = activeProfile.peakTemp -15; // get it all going with a bit of a kick! v sluggish here otherwise, too hot too long
       }
 
 #ifdef OPENDRAWER
@@ -651,7 +660,7 @@ void loop()
       }
 #endif
 
-      Setpoint -= (rampDownRate/10); 
+      Setpoint -= (activeProfile.rampDownRate/10); 
 
       if(Setpoint <= idleTemp){
         currentState = coolDown;
@@ -694,12 +703,7 @@ void loop()
     heaterValue = 0;
     fanValue = Output;
   }
-  //} 
-  //else {
-  //  fanValue = 0;
-  //  heaterValue = 0;
-  //  Setpoint = 25;
-  //}
+
   if(millis() - windowStartTime>WindowSize)
   { //time to shift the Relay Window
     windowStartTime += WindowSize;
@@ -747,17 +751,17 @@ void saveProfile(){
   Serial.print("idleTemp ");
   Serial.println(idleTemp);
   Serial.print("ramp Up rate ");
-  Serial.println(rampUpRate);
+  Serial.println(activeProfile.rampUpRate);
   Serial.print("soakTemp ");
-  Serial.println(soakTemp);
+  Serial.println(activeProfile.soakTemp);
   Serial.print("soakDuration ");
-  Serial.println(soakDuration);
+  Serial.println(activeProfile.soakDuration);
   Serial.print("peakTemp ");
-  Serial.println(peakTemp);
+  Serial.println(activeProfile.peakTemp);
   Serial.print("peakDuration ");
-  Serial.println(peakDuration);
+  Serial.println(activeProfile.peakDuration);
   Serial.print("rampDownRate ");
-  Serial.println(rampDownRate);
+  Serial.println(activeProfile.rampDownRate);
   Serial.println("About to save parameters");
 #endif
 
@@ -778,17 +782,17 @@ void loadProfile(){
   Serial.print("idleTemp ");
   Serial.println(idleTemp);
   Serial.print("ramp Up rate ");
-  Serial.println(rampUpRate);
+  Serial.println(activeProfile.rampUpRate);
   Serial.print("soakTemp ");
-  Serial.println(soakTemp);
+  Serial.println(activeProfile.soakTemp);
   Serial.print("soakDuration ");
-  Serial.println(soakDuration);
+  Serial.println(activeProfile.soakDuration);
   Serial.print("peakTemp ");
-  Serial.println(peakTemp);
+  Serial.println(activeProfile.peakTemp);
   Serial.print("peakDuration ");
-  Serial.println(peakDuration);
+  Serial.println(activeProfile.peakDuration);
   Serial.print("rampDownRate ");
-  Serial.println(rampDownRate);
+  Serial.println(activeProfile.rampDownRate);
   Serial.println("About to load parameters");
 #endif
 
@@ -800,17 +804,17 @@ void loadProfile(){
   Serial.print("idleTemp ");
   Serial.println(idleTemp);
   Serial.print("ramp Up rate ");
-  Serial.println(rampUpRate);
+  Serial.println(activeProfile.rampUpRate);
   Serial.print("soakTemp ");
-  Serial.println(soakTemp);
+  Serial.println(activeProfile.soakTemp);
   Serial.print("soakDuration ");
-  Serial.println(soakDuration);
+  Serial.println(activeProfile.soakDuration);
   Serial.print("peakTemp ");
-  Serial.println(peakTemp);
+  Serial.println(activeProfile.peakTemp);
   Serial.print("peakDuration ");
-  Serial.println(peakDuration);
+  Serial.println(activeProfile.peakDuration);
   Serial.print("rampDownRate ");
-  Serial.println(rampDownRate);
+  Serial.println(activeProfile.rampDownRate);
   Serial.println("after loading parameters");
 #endif
 
@@ -824,33 +828,33 @@ void saveParameters(unsigned int profile){
   if(profile !=0) offset = profile*16;
 
 
-  EEPROM.write(offset,lowByte(soakTemp));
+  EEPROM.write(offset,lowByte(activeProfile.soakTemp));
   offset++;
-  EEPROM.write(offset,highByte(soakTemp));
-  offset++;
-
-  EEPROM.write(offset,lowByte(soakDuration));
-  offset++;
-  EEPROM.write(offset,highByte(soakDuration));
+  EEPROM.write(offset,highByte(activeProfile.soakTemp));
   offset++;
 
-  EEPROM.write(offset,lowByte(peakTemp));
+  EEPROM.write(offset,lowByte(activeProfile.soakDuration));
   offset++;
-  EEPROM.write(offset,highByte(peakTemp));
-  offset++;
-
-  EEPROM.write(offset,lowByte(peakDuration));
-  offset++;
-  EEPROM.write(offset,highByte(peakDuration));
+  EEPROM.write(offset,highByte(activeProfile.soakDuration));
   offset++;
 
-  int temp = rampUpRate * 10;
+  EEPROM.write(offset,lowByte(activeProfile.peakTemp));
+  offset++;
+  EEPROM.write(offset,highByte(activeProfile.peakTemp));
+  offset++;
+
+  EEPROM.write(offset,lowByte(activeProfile.peakDuration));
+  offset++;
+  EEPROM.write(offset,highByte(activeProfile.peakDuration));
+  offset++;
+
+  int temp = activeProfile.rampUpRate * 10;
   EEPROM.write(offset,(temp & 255));
   offset++;
   EEPROM.write(offset,(temp >> 8) & 255);
   offset++;
 
-  temp = rampDownRate * 10;
+  temp = activeProfile.rampDownRate * 10;
   EEPROM.write(offset,(temp & 255));
   offset++;
   EEPROM.write(offset,(temp >> 8) & 255);
@@ -863,37 +867,37 @@ void loadParameters(unsigned int profile){
   if(profile !=0) offset = profile*16;
 
 
-  soakTemp = EEPROM.read(offset);
+  activeProfile.soakTemp = EEPROM.read(offset);
   offset++;
-  soakTemp |= EEPROM.read(offset) << 8;
-  offset++;
-
-  soakDuration = EEPROM.read(offset);
-  offset++;
-  soakDuration |= EEPROM.read(offset) << 8;
+  activeProfile.soakTemp |= EEPROM.read(offset) << 8;
   offset++;
 
-  peakTemp = EEPROM.read(offset);
+  activeProfile.soakDuration = EEPROM.read(offset);
   offset++;
-  peakTemp |= EEPROM.read(offset) << 8;
+  activeProfile.soakDuration |= EEPROM.read(offset) << 8;
   offset++;
 
-  peakDuration = EEPROM.read(offset);
+  activeProfile.peakTemp = EEPROM.read(offset);
   offset++;
-  peakDuration |= EEPROM.read(offset) << 8;
+  activeProfile.peakTemp |= EEPROM.read(offset) << 8;
+  offset++;
+
+  activeProfile.peakDuration = EEPROM.read(offset);
+  offset++;
+  activeProfile.peakDuration |= EEPROM.read(offset) << 8;
   offset++;
 
   int temp = EEPROM.read(offset);
   offset++;
   temp |= EEPROM.read(offset) << 8;
   offset++;
-  rampUpRate = ((double)temp /10);
+  activeProfile.rampUpRate = ((double)temp /10);
 
   temp = EEPROM.read(offset);
   offset++;
   temp |= EEPROM.read(offset) << 8;
   offset++;
-  rampDownRate = ((double)temp /10);
+  activeProfile.rampDownRate = ((double)temp /10);
 
 }
 
@@ -911,13 +915,13 @@ boolean firstRun(){ // we check the whole of the space of the 16th profile, if a
 
 void factoryReset(){
   // clear any adjusted settings first, just to be sure...
-  soakTemp = 130;
-  soakDuration = 80;
-  peakTemp = 220;
-  peakDuration = 40; 
+  activeProfile.soakTemp = 130;
+  activeProfile.soakDuration = 80;
+  activeProfile.peakTemp = 220;
+  activeProfile.peakDuration = 40; 
 
-  rampUpRate = 0.80;
-  rampDownRate = 2.0; 
+  activeProfile.rampUpRate = 0.80;
+  activeProfile.rampDownRate = 2.0; 
   lcd.clear();
   lcd.print("Resetting...");
 
@@ -966,6 +970,8 @@ void loadLastUsedProfile(){
   //Serial.print("Loaded last used profile number :");
   //Serial.println(temp);
 }
+
+
 
 
 

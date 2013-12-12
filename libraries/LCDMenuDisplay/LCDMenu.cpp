@@ -34,7 +34,11 @@ void LCDMenu::init (MenuItem *initial, LiquidCrystal *lcd, boolean fourkey) {
 void LCDMenu::showCurrent () {
 	//char buffer[64];
 	LCD->clear();
-	LCD->print (this->Current->Name) ;
+	if(this->Current->Name_P == NULL){
+		LCD->print (this->Current->Name) ;
+	} else {
+		LCD->print (this->Current->Name_P) ;
+	}
 	//LCD->setCursor(0,2);
 	//this->Current->getValueString(buffer);
 	//LCD->print (buffer);
@@ -46,7 +50,11 @@ void LCDMenu::showCurrentValue () {
 	char buffer[20];
 	this->Current->getValueString(buffer);
 	LCD->clear();
-	LCD->print (this->Current->Name) ;
+	if(this->Current->Name_P == NULL){
+		LCD->print (this->Current->Name) ;
+	} else {
+		LCD->print (this->Current->Name_P) ;
+	}
 	LCD->setCursor(0,1);
 	LCD->print("Editing ");
 	LCD->setCursor(0,2);
