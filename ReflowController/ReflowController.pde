@@ -1,51 +1,24 @@
-
-
-/*
- 
- 
- Ed's reflow oven controller
- 
- Basic theory:
- T962A reflow oven controller is awful - this provides a drop in replacement for the t962A control.
- 
- Two thermocouples are mounted in the top of the oven by the manufacturer to measure the internal temperature, these are good for measuring the air temp but don't give good results alone.
- 
- Variable duty cycle control of fan.
- 
- Replace the exhaust fan control with another SSR to simplify the control and allow fan PWM control.
- 
- Default settings:
- 
- Soak setpoint & duration (150 degrees for 120 seconds max)
- Peak setpoint & duration (ramp up to 225 degrees peak air temp and back to under 200 in less than 100 seconds)
- Ideally, time above liquidous (217 degrees) is less that 60 seconds over the whole board, but adequate heat must be supplied to properly flow all joints
- 
- */
-
 /*
 
- ToDo:
- make menu more sensible for choosing the profile number to save/load
- fan idle speed during a cycle should be an adjustable parameter
- remap fan speed to be more linear, 0 - 100 needs to map 0=0, 1=60,then linear to 100= 100
+ ESTechnical Reflow Oven Controller
+ 
+ Ed Simmons 2012-2013
+ 
+ http://www.estechnical.co.uk
+ 
+ http://www.estechnical.co.uk/reflow-controllers/t962a-reflow-oven-controller-upgrade
+ 
+ http://www.estechnical.co.uk/reflow-ovens/estechnical-reflow-oven
  
  */
-// all is currently running from the first thermocouple.
-// this is the front one nearest the opening of the drawer.
-
-// the temp here is lower than reported at the board surface in the centre of the oven by about 20 degrees.
-// the fan being run gently all the time made more even heat but appeared to increase the disparity between 
-// thermocouple reading at the front and on the board
-// the peak temp measured at the board during testing with 'sensible looking' setpoints gave a very high temp (nearly 300!)
-// 185 !! peak goives good results, just hits 220 on the board
-// 175 peak, does not get board up to temp at all
-
-
-// this is for Albert Lim's version, it outputs a pulse on the TTL serial port to open the drawer at the beginning of ramp down
-//#define OPENDRAWER 
 
 //#define DEBUG
 
+// for Albert Lim's version, extra features: outputs a pulse on the TTL serial port to open the drawer automatically at the beginning
+of ramp down
+//#define OPENDRAWER 
+
+// data type for the values used in the reflow profile
 struct profileValues {
   int soakTemp;
   int soakDuration;
@@ -56,10 +29,10 @@ struct profileValues {
 
 };
 
-profileValues activeProfile;
+profileValues activeProfile; // the one and only instance
 
 
-int idleTemp = 50;
+int idleTemp = 50; // the temperature at which to consider the oven safe to leave to cool naturally
 
 int fanAssistSpeed = 50; // default fan speed
 
@@ -113,7 +86,7 @@ MenuItemInteger peak_temp;
 MenuItemInteger peak_duration;
 MenuItemDouble rampDown_rate;
 
-MenuItemSubMenu profileLoadSave;
+MenuItemSubMenu profileLoadSave; // needs restructuring
 MenuItemInteger profile_number;
 MenuItemAction save_profile;
 MenuItemAction load_profile;
@@ -132,11 +105,8 @@ unsigned long windowStartTime;
 
 unsigned long startTime, stateChangedTime = 0, lastUpdate = 0, lastDisplayUpdate = 0, lastSerialOutput = 0; // a handful of timer variables
 
-//volatile boolean cycleStart = false;
-
-//Define the tuning parameters
+//Define the PID tuning parameters
 double Kp=4, Ki=0.05, Kd=2;
-
 double fanKp = 1, fanKi = 0.03, fanKd=10;
 
 //Specify the links and initial tuning parameters
@@ -151,7 +121,7 @@ double airTemp[NUMREADINGS];
 double runningTotalRampRate; 
 double rampRate = 0;
 
-double rateOfRise = 0;
+double rateOfRise = 0; // the result that is displayed
 
 double temp1, temp2;
 double readingsT1[NUMREADINGS];                // the readings used to make a stable temp rolling average
@@ -358,10 +328,10 @@ void updateDisplay(){
 
 void setup()
 {
-  boolean state = getJumperState();
-  myMenu.init(&control, &lcd, state);
+  boolean jumperState = getJumperState(); // open for T962(A/C) use, closed for toaster conversion kit keypad
+  myMenu.init(&control, &lcd, jumperState);
 
-  // initialise the menu strings, now stored in the progmem
+  // initialise the menu strings (stored in the progmem), min and max values, pointers to variables etc
   control.init (F("Cycle start"),  &cycleStart);
   profile.init (F("Edit Profile"));
   rampUp_rate.init(F("Ramp up rate (C/S)"), &activeProfile.rampUpRate, 0.1, 5.0);
@@ -389,7 +359,9 @@ void setup()
   peak_duration.addItem(&rampDown_rate);
 
 
-  //old one
+  // this needs to be replaced with a better menu structure. This relies on being able to 
+  // have a menu item that allows the user to choose a number then be sent to another menu item
+  // toby... over to you.
   control.addItem(&profileLoadSave);
   profileLoadSave.addChild(&profile_number);
   profile_number.addItem(&load_profile);
@@ -401,6 +373,7 @@ void setup()
   fan_control.addChild(&idle_speed);
   idle_speed.addItem(&save_fan_speed);
 
+  //factory reset function
   control.addItem(&factory_reset);
 
 
@@ -417,12 +390,12 @@ void setup()
 
   if(firstRun()){
     factoryReset();
+    loadParameters(0);
   } 
   else {
-    loadParameters(0); // on normal startups load the first profile
+    loadLastUsedProfile();
   }
 
-  loadLastUsedProfile();
   loadFanSpeed();
 
   // setting up SPI bus  
@@ -551,7 +524,12 @@ void loop()
         Serial.print("0,0,0,0,0,"); 
         Serial.print(averageT1); 
         Serial.print(",");
-        Serial.println(averageT2); 
+        Serial.print(averageT2); 
+#ifdef DEBUG
+        Serial.print(",");
+        Serial.print(freeMemory());
+#endif
+        Serial.println();
       } 
       else {
 
@@ -567,16 +545,17 @@ void loop()
         Serial.print(",");
         Serial.print(averageT1); 
         Serial.print(",");
-        Serial.println(averageT2);
+        Serial.print(averageT2);
+#ifdef DEBUG
+        Serial.print(",");
+        Serial.print(freeMemory());
+#endif
+        Serial.println();
       }
     }
 
+    // check for the stop or back key being pressed
 
-    if(currentState != lastState){
-      lastState = currentState;
-      stateChanged = true;
-      stateChangedTime = millis();
-    }
     boolean stopPin = digitalRead(7); // check the state of the stop key
     if(stopPin == LOW && lastStopPin != stopPin){ // if the state has just changed
       if(currentState == coolDown){
@@ -587,6 +566,13 @@ void loop()
       }
     }
     lastStopPin = stopPin;
+
+    // if the state has changed, set the flags and update the time of state change
+    if(currentState != lastState){
+      lastState = currentState;
+      stateChanged = true;
+      stateChangedTime = millis();
+    }
 
     switch(currentState){
     case idle:
@@ -970,6 +956,8 @@ void loadLastUsedProfile(){
   //Serial.print("Loaded last used profile number :");
   //Serial.println(temp);
 }
+
+
 
 
 
