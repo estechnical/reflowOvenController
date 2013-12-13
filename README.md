@@ -8,18 +8,41 @@ ed@estechnical.co.uk
 http://www.estechnical.co.uk
 
 
+Introduction
+====================
+
 The ESTechnical reflow oven controller was designed to operate the T962, T962A and T962C ovens.
 
 It operates using PID control of the heater and fan output to improve the control compared to the original manufacturer's controller.
 
-ESTechnical sell the controller hardware ready to install, currently on eBay and very soon on the ESTechnical website http://www.estechnical.co.uk
+ESTechnical sell the controller hardware ready to install, currently on eBay and on the ESTechnical website http://www.estechnical.co.uk
 
 Thanks go to Toby Wilkinson for his excellent menu codebase - http://tobestool.net/t962-t962a-reflow-oven-controller/
 Thanks are also due to Brett Beauregard for his excellent work on the arduino PID library - http://playground.arduino.cc/Code/PIDLibrary
 
-To edit/compile/program the controller, first install the arduino IDE - http://arduino.cc/en/Main/Software
 
-The ESTechnical reflow controller uses a 20MHz crystal instead of a 16MHz crystal, this requires special build settings for the arduino IDE. Browse to your arduino installation directory, then browse to hardware/arduino/boards.txt. Edit this file and add the following block to the file:
+Obtaining the source code
+====================
+
+Using GIT:
+	If you are familiar with git and want to use git to check out the source code, use the following command in a terminal:
+
+		git clone https://github.com/estechnical/reflowOvenController.git
+
+	This will check out the source code from git into the current directory. I will cover no further use of git here.
+
+Downloading a zip file:
+	To download a zip file of the latest source code, visit https://github.com/estechnical/reflowOvenController and click on the
+	'Download ZIP' button (in the right hand column of the page). Once the file has dowloaded, extract the zip archive to a location of your choice.
+
+
+Installation
+====================
+
+To edit/compile the source code for the reflow controller, first install the arduino IDE - http://arduino.cc/en/Main/Software
+
+Because the ESTechnical reflow controller uses a 20MHz crystal instead of a 16MHz crystal, this requires special build settings for the arduino IDE. 
+Browse to your arduino installation directory, then browse to hardware/arduino/boards.txt. Edit this file (using, for example Programmer's Notepad) and add the following block to the top of the file, taking care to not mess up the layout of the file:
 
 
 ##############################################################
@@ -47,10 +70,10 @@ atmega328_20MHz.build.variant=standard
 ##############################################################
 
 
-Save the file and quit. 
+Save the file and quit. Be sure that the section that you added to the file is correctly laid.
 
 
-Find the sketchbook directory that the arduino IDE created when installing, you can see the path in the arduino preferences menu. Copy the ReflowController directory (contained in these files downloaded from github) to the Sketchbook location. Copy all the folders in the Libraries folder (contained in these files downloaded from github) to the libraries directory in the arduino sketchbook location.
+Locate the sketchbook directory that the arduino IDE created when installing, you can see the path in the arduino preferences menu (File-> Preferences). Copy the ReflowController directory from the zip file into the Sketchbook location. Copy all the folders in the Libraries folder (contained in these files downloaded from github) to the libraries directory in the arduino sketchbook location.
 
 Open the arduino ide, open the ReflowController.pde sketch. Select the right kind of hardware from the Tools->Board menu . Compile this with Ctrl+R to test everything is installed correctly. Choose the right serial port from Tools->Serial Port and then upload the code using Ctrl+U.
 
