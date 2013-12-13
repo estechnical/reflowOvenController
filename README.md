@@ -26,10 +26,9 @@ Obtaining the source code
 
 Using GIT:
 	If you are familiar with git and want to use git to check out the source code, use the following command in a terminal:
-
+	(This will check out the source code from git into the current directory. I will cover no further use of git here.)
 		git clone https://github.com/estechnical/reflowOvenController.git
 
-	This will check out the source code from git into the current directory. I will cover no further use of git here.
 
 Downloading a zip file:
 	To download a zip file of the latest source code, visit https://github.com/estechnical/reflowOvenController and click on the
@@ -45,29 +44,29 @@ Because the ESTechnical reflow controller uses a 20MHz crystal instead of a 16MH
 Browse to your arduino installation directory, then browse to hardware/arduino/boards.txt. Edit this file (using, for example Programmer's Notepad) and add the following block to the top of the file, taking care to not mess up the layout of the file:
 
 
-##############################################################
+	##############################################################
 
-atmega328_20MHz.name=ESTechnical Reflow controller
+	atmega328_20MHz.name=ESTechnical Reflow controller
 
-atmega328_20MHz.upload.protocol=stk500
-atmega328_20MHz.upload.maximum_size=30720
-atmega328_20MHz.upload.speed=57600
+	atmega328_20MHz.upload.protocol=stk500
+	atmega328_20MHz.upload.maximum_size=30720
+	atmega328_20MHz.upload.speed=57600
 
-atmega328_20MHz.bootloader.low_fuses=0xFF
-atmega328_20MHz.bootloader.high_fuses=0xDA
-atmega328_20MHz.bootloader.extended_fuses=0x05
-atmega328_20MHz.bootloader.path=atmega
-atmega328_20MHz.bootloader.file=ATmegaBOOT_168_atmega328.hex
-atmega328_20MHz.bootloader.unlock_bits=0x3F
-atmega328_20MHz.bootloader.lock_bits=0x0F
+	atmega328_20MHz.bootloader.low_fuses=0xFF
+	atmega328_20MHz.bootloader.high_fuses=0xDA
+	atmega328_20MHz.bootloader.extended_fuses=0x05
+	atmega328_20MHz.bootloader.path=atmega
+	atmega328_20MHz.bootloader.file=ATmegaBOOT_168_atmega328.hex
+	atmega328_20MHz.bootloader.unlock_bits=0x3F
+	atmega328_20MHz.bootloader.lock_bits=0x0F
 
-atmega328_20MHz.build.mcu=atmega328p
-atmega328_20MHz.build.f_cpu=20000000L
-atmega328_20MHz.build.core=arduino
-atmega328_20MHz.build.variant=standard
+	atmega328_20MHz.build.mcu=atmega328p
+	atmega328_20MHz.build.f_cpu=20000000L
+	atmega328_20MHz.build.core=arduino
+	atmega328_20MHz.build.variant=standard
 
 
-##############################################################
+	##############################################################
 
 
 Save the file and quit. Be sure that the section that you added to the file is correctly laid.
