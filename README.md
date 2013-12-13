@@ -15,7 +15,7 @@ The ESTechnical reflow oven controller was designed to operate the T962, T962A a
 
 It operates using PID control of the heater and fan output to improve the control compared to the original manufacturer's controller.
 
-ESTechnical sell the controller hardware ready to install, currently on eBay and on the ESTechnical website http://www.estechnical.co.uk
+ESTechnical sell the controller hardware ready to install on eBay and on the ESTechnical website: http://www.estechnical.co.uk
 
 Thanks go to Toby Wilkinson for his excellent menu codebase - http://tobestool.net/t962-t962a-reflow-oven-controller/
 Thanks are also due to Brett Beauregard for his excellent work on the arduino PID library - http://playground.arduino.cc/Code/PIDLibrary
@@ -25,9 +25,10 @@ Obtaining the source code
 ====================
 
 Using GIT:
-	If you are familiar with git and want to use git to check out the source code, use the following command in a terminal:
-	(This will check out the source code from git into the current directory. I will cover no further use of git here.)
-		git clone https://github.com/estechnical/reflowOvenController.git
+If you are familiar with git and want to use git to check out the source code, use the following command in a terminal:
+(This will check out the source code from git into the current directory. I will cover no further use of git here.)
+
+	git clone https://github.com/estechnical/reflowOvenController.git
 
 
 Downloading a zip file:
