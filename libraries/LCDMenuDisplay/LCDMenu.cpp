@@ -56,7 +56,11 @@ void LCDMenu::showCurrentValue () {
 		LCD->print (this->Current->Name_P) ;
 	}
 	LCD->setCursor(0,1);
-	LCD->print("Editing ");
+	if(this->Current->HelpText == NULL){
+		LCD->print("Editing ");
+	} else {
+		LCD->print (this->Current->HelpText) ;
+	}
 	LCD->setCursor(0,2);
 	LCD->print (buffer);
 	LCD->setCursor(0,3);

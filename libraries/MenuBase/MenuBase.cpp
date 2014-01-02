@@ -10,6 +10,11 @@
 #include "Arduino.h"
 #include "MenuItemSubMenu.h"
 
+MenuItem::MenuItem () {
+	/* Initialise generic menu item. */
+	this->HelpText = NULL;
+}
+
 void MenuItem::addItem (MenuItem *newItem) {
 	/* Adds a new item to the end of a menu chain. If this is the last item in 
 		the chain at the moment, it's added as the next element, otherwise it's 

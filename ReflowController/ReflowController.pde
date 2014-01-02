@@ -14,6 +14,8 @@
 
 //#define DEBUG
 
+String ver = "2.4"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
+
 // for Albert Lim's version, extra features: outputs a pulse on the TTL serial 
 // port to open the drawer automatically at the beginning of ramp down
 //#define OPENDRAWER 
@@ -68,6 +70,7 @@ LiquidCrystal lcd(19,18,17,16,15,14);
 #include <MenuItemInteger.h>
 #include <MenuItemDouble.h>
 #include <MenuItemAction.h>
+#include <MenuItemIntegerAction.h>
 #include <MenuBase.h>
 #include <LCDMenu.h>
 #include <MenuItemSubMenu.h>
@@ -86,7 +89,9 @@ MenuItemInteger peak_temp;
 MenuItemInteger peak_duration;
 MenuItemDouble rampDown_rate;
 
-MenuItemSubMenu profileLoadSave; // needs restructuring
+MenuItemSubMenu profileLoadSave;
+MenuItemIntegerAction profileLoad;
+MenuItemIntegerAction profileSave;
 MenuItemInteger profile_number;
 MenuItemAction save_profile;
 MenuItemAction load_profile;
@@ -114,6 +119,8 @@ PID PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 unsigned int fanValue, heaterValue;
 
+void loadProfile(unsigned int);
+void saveProfile(unsigned int);
 
 //bits for keeping track of the temperature ramp
 #define NUMREADINGS 10
@@ -340,10 +347,8 @@ void setup()
   peak_temp.init(F("Peak temp (C)"), &activeProfile.peakTemp,100,300,false);
   peak_duration.init(F("Peak time (S)"), &activeProfile.peakDuration,5,60,false);
   rampDown_rate.init(F("Ramp down rate (C/S)"), &activeProfile.rampDownRate, 0.1, 10);
-  profileLoadSave.init(F("Load/Save Profile"));
-  profile_number.init(F("Profile number"),  &profileNumber, 0, 29,true);
-  save_profile.init(F("Save"),  &saveProfile);
-  load_profile.init(F("Load"),  &loadProfile);
+  profileLoad.init(F("Load Profile"), &loadProfile, &profileNumber, F("Select Profile"), 0, 29,true);
+  profileSave.init(F("Save Profile"), &saveProfile, &profileNumber, F("Select Profile"), 0, 29,true);
   fan_control.init(F("Fan settings"));
   idle_speed.init(F("Idle speed"),  &fanAssistSpeed, 0, 70,false);
   save_fan_speed.init(F("Save"),  &saveFanSpeed);
@@ -362,10 +367,11 @@ void setup()
   // this needs to be replaced with a better menu structure. This relies on being able to 
   // have a menu item that allows the user to choose a number then be sent to another menu item
   // toby... over to you.
-  control.addItem(&profileLoadSave);
-  profileLoadSave.addChild(&profile_number);
-  profile_number.addItem(&load_profile);
-  load_profile.addItem(&save_profile);
+  control.addItem(&profileLoad);
+  control.addItem(&profileSave);
+//  profileLoadSave.addChild(&profile_number);
+//  profile_number.addItem(&load_profile);
+//  load_profile.addItem(&save_profile);
 
 
   // fan speed control
@@ -449,7 +455,8 @@ void setup()
   lcd.setCursor(0,1);
   lcd.print(" Reflow controller");
   lcd.setCursor(0,2);
-  lcd.print("      v2.3");
+  lcd.print("      v");
+  lcd.print(ver);
 #ifdef OPENDRAWER
   lcd.setCursor(0,3);
   lcd.print(" Albert Lim version");
@@ -726,7 +733,8 @@ void cycleStart(){
 
 }
 
-void saveProfile(){
+void saveProfile(unsigned int targetProfile){
+  profileNumber = targetProfile;
   lcd.clear();
   lcd.print("Saving profile ");
   lcd.print(profileNumber);
@@ -756,7 +764,9 @@ void saveProfile(){
   delay(500); 
 }
 
-void loadProfile(){
+void loadProfile(unsigned int targetProfile){
+  // We may be able to do-away with profileNumber entirely now the selection is done in-function.
+  profileNumber = targetProfile;
   lcd.clear();
   lcd.print("Loading profile ");
   lcd.print(profileNumber);

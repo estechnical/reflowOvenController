@@ -21,9 +21,12 @@ public:
   MenuItem *Next;
   MenuItem *Parent;
   const char *Name;
+  // Used when the item is active - e.g. editing a value
+  const __FlashStringHelper *HelpText; 
   const __FlashStringHelper *Name_P; 
 //  int afterName;
 
+  MenuItem (void);
   virtual void getValueString (char *string) = 0;
   virtual void select(MenuDisplay *controller) = 0;
   virtual void exit(MenuDisplay *controller) = 0;
