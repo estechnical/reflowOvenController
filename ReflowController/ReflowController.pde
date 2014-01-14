@@ -14,7 +14,7 @@
 
 //#define DEBUG
 
-String ver = "2.4"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
+String ver = "2.5"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
 
 // for Albert Lim's version, extra features: outputs a pulse on the TTL serial 
 // port to open the drawer automatically at the beginning of ramp down
@@ -448,7 +448,6 @@ void setup()
     airTemp[i]=temp; 
   }
 
-  myMenu.showCurrent();
 
   lcd.clear();
   lcd.print(" ESTechnical.co.uk");
@@ -463,6 +462,8 @@ void setup()
 #endif
   delay(7500);
 
+  myMenu.showCurrent();
+  
 }
 
 
@@ -965,6 +966,7 @@ void loadLastUsedProfile(){
   profileNumber = (int) temp;
   //Serial.print("Loaded last used profile number :");
   //Serial.println(temp);
+  loadParameters(profileNumber);
 }
 
 
