@@ -75,12 +75,22 @@ Browse to your arduino installation directory, then browse to hardware/arduino/b
 
 Save the file and quit.
 
+Setting up the source code to build firmware
+====================
 
-Locate the sketchbook directory that the arduino IDE created when installing, you can see the path to your sketchbook folder in the arduino preferences menu (File-> Preferences). 
+Locate the sketchbook directory that the arduino IDE created when installing, you can see the path to your sketchbook folder in the arduino preferences menu (File-> Preferences).
 
-Copy the ReflowController directory from the zip file into the Sketchbook location. Copy all the folders in the Libraries folder (contained in these files downloaded from github) to the libraries directory in the arduino sketchbook directory.
+From the files downloaded and unzipped from github:
 
-Open the arduino ide, open the ReflowController.pde sketch. Select the right kind of hardware from the Tools->Board menu . Compile this with Ctrl+R to test everything is installed correctly. Choose the right serial port from Tools->Serial Port and then upload the code using Ctrl+U.
+Copy the ReflowController directory from the zip file into the Sketchbook directory. 
+
+Copy all the directories in the Libraries directory to the libraries directory in the arduino sketchbook directory.
+
+Open the arduino IDE, open the ReflowController.pde sketch (using File->Open). 
+
+Select the right kind of hardware from the Tools->Board menu. 
+
+Compile the firmware with Ctrl+R to test everything is installed correctly. Choose the right serial port from Tools->Serial Port and then upload the code using Ctrl+U.
 
 
 
