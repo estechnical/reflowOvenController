@@ -44,6 +44,7 @@ Installation
 To edit/compile the source code for the reflow controller, first install the arduino IDE - http://arduino.cc/en/Main/Software
 
 Because the ESTechnical reflow controller uses a 20MHz crystal instead of a 16MHz crystal, this requires special build settings for the arduino IDE. 
+
 Browse to your arduino installation directory, then browse to hardware/arduino/boards.txt. Edit this file (using, for example Programmer's Notepad http://www.pnotepad.org) and add the following block to the top of the file, taking care to not mess up the layout of the file:
 
 
@@ -72,7 +73,7 @@ Browse to your arduino installation directory, then browse to hardware/arduino/b
 	##############################################################
 
 
-Save the file and quit. Be sure that the section that you added to the file is correctly laid.
+Save the file and quit.
 
 
 Locate the sketchbook directory that the arduino IDE created when installing, you can see the path to your sketchbook folder in the arduino preferences menu (File-> Preferences). 
