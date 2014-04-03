@@ -14,11 +14,15 @@
 
 //#define DEBUG
 
-String ver = "2.5"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
+String ver = "2.6"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
 
 // for Albert Lim's version, extra features: outputs a pulse on the TTL serial 
 // port to open the drawer automatically at the beginning of ramp down
 //#define OPENDRAWER 
+
+#include "temperature.h"
+
+tcInput A, B; // the two structs for thermocouple data
 
 // data type for the values used in the reflow profile
 struct profileValues {
@@ -32,6 +36,7 @@ struct profileValues {
 };
 
 profileValues activeProfile; // the one and only instance
+
 
 
 int idleTemp = 50; // the temperature at which to consider the oven safe to leave to cool naturally
@@ -130,7 +135,6 @@ double rampRate = 0;
 
 double rateOfRise = 0; // the result that is displayed
 
-double temp1, temp2;
 double readingsT1[NUMREADINGS];                // the readings used to make a stable temp rolling average
 double readingsT2[NUMREADINGS];
 unsigned short index = 0;                            // the index of the current reading
@@ -163,18 +167,6 @@ enum state {
 
 state currentState = idle, lastState = idle;
 boolean stateChanged = false;
-
-
-char spi_transfer(volatile char data)
-{
-  SPDR = data; // Start the transmission
-  while (!(SPSR & (1<<SPIF))) // Wait the end of the transmission
-  {
-  };
-  return SPDR; // return the received byte
-}
-
-
 
 void abortWithError(int error){
   // set outputs off for safety.
@@ -212,76 +204,32 @@ void abortWithError(int error){
   }
 }
 
+void displayThermocoupleData(struct tcInput* input){
+  switch(input->stat){
+  case 0:
 
-double getTemperature(){
-  // this does not do chip select for you, chip select first, then call getTemperature() for the result from the selected IC, dont' 
-  //forget to release chip select when done
-  // we simply read four bytes from SPI here...
-  // bit 31 is temperature sign, 30-18 are 14 bit thermocouple reading, 17 is reserved, 16 is fault bit, 15 is internal reference sign,
+    lcd.print(input->temperature,1);
+    lcd.print((char)223);// degrees symbol!
+    lcd.print("C");
 
-  // 14-4 internal ref 12 bit reading, 3 reserved, 2 short to vcc bit, 1 short to gnd bit, 0 is open circuit bit 
-  //(last three being set = error!!)
-  // we;re being incredibly lazy and only reading the first two bytes
+    break;
 
-  uint16_t result = 0x0000;
-  byte reply = 0;
-
-  char data = 0; // dummy data to write
-  //spi_transfer(data);
-  reply = spi_transfer(data);
-  result = reply << 8;
-  reply = spi_transfer(data);
-  result = result | reply;
-
-  spi_transfer(data);
-  reply = spi_transfer(data); // get the last byte, we care about the error bits
-  if(reply & 1){
-    abortWithError(3);
+  case 1:
+    lcd.print("---");
+    break;
 
   }
-  //lcd.clear();
-  //lcd.print(result, BIN);
-  result = (uint16_t)result >> 2;
-  //lcd.clear();
 
-  result = result * 0.25;
-
-  return result;
-
-}
-
-
-double getAirTemperature1(){
-  digitalWrite(CHIPSELECT1, LOW);
-  double temp = getTemperature();
-  digitalWrite(CHIPSELECT1, HIGH);
-  return temp;
-}
-
-double getAirTemperature2(){
-  digitalWrite(CHIPSELECT2, LOW);
-  double temp = getTemperature();
-  digitalWrite(CHIPSELECT2, HIGH);
-  return temp;
-}
-
-boolean getJumperState(){
-  boolean result = false; // jumper open
-  unsigned int val = analogRead(7);
-  if(val < 500) result = true;
-  return result;
 }
 
 void updateDisplay(){
   lcd.clear();
 
-  lcd.print(averageT1,1);
-  lcd.print((char)223);// degrees symbol!
-  lcd.print("C ");
+  displayThermocoupleData(&A);
 
-  lcd.print(averageT2,1);
-  lcd.print((char)223);// degrees symbol!
-  lcd.print("C");
+  lcd.print(" ");
+
+  displayThermocoupleData(&B);
 
   if(currentState!=idle){
     lcd.setCursor(16,0);
@@ -331,10 +279,18 @@ void updateDisplay(){
   lcd.print("C/S");
 }
 
-
+boolean getJumperState(){
+  boolean result = false; // jumper open
+  unsigned int val = analogRead(7);
+  if(val < 500) result = true;
+  return result;
+}
 
 void setup()
 {
+  A.chipSelect = 10; // define the chip select pins for the two MAX31855 ICs
+  B.chipSelect = 2;
+
   boolean jumperState = getJumperState(); // open for T962(A/C) use, closed for toaster conversion kit keypad
   myMenu.init(&control, &lcd, jumperState);
 
@@ -369,9 +325,9 @@ void setup()
   // toby... over to you.
   control.addItem(&profileLoad);
   control.addItem(&profileSave);
-//  profileLoadSave.addChild(&profile_number);
-//  profile_number.addItem(&load_profile);
-//  load_profile.addItem(&save_profile);
+  //  profileLoadSave.addChild(&profile_number);
+  //  profile_number.addItem(&load_profile);
+  //  load_profile.addItem(&save_profile);
 
 
   // fan speed control
@@ -405,10 +361,10 @@ void setup()
   loadFanSpeed();
 
   // setting up SPI bus  
-  digitalWrite(CHIPSELECT1, HIGH);
-  digitalWrite(CHIPSELECT2, HIGH);
-  pinMode(CHIPSELECT1, OUTPUT);
-  pinMode(CHIPSELECT2, OUTPUT);
+  digitalWrite(A.chipSelect, HIGH);
+  digitalWrite(B.chipSelect, HIGH);
+  pinMode(A.chipSelect, OUTPUT);
+  pinMode(B.chipSelect, OUTPUT);
   pinMode(DATAOUT, OUTPUT);
   pinMode(SPICLOCK,OUTPUT);
   //pinMode(10,OUTPUT);
@@ -429,7 +385,7 @@ void setup()
   // CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
   // SPR1 and SPR0 - Sets the SPI speed, 00 is fastest (4MHz) 11 is slowest (250KHz)
 
-  SPCR = (1<<SPE)|(1<<MSTR)|(1<<CPHA)|(1<<SPR1)|(1<<SPR0);// SPI enable bit set, master, data valid on falling edge of clock
+  SPCR = (1<<SPE)|(1<<MSTR)|(1<<CPHA);// SPI enable bit set, master, data valid on falling edge of clock
 
   clr=SPSR;
   clr=SPDR;
@@ -442,10 +398,14 @@ void setup()
   //turn the PID on
   PID.SetMode(AUTOMATIC);
 
-  int temp = getAirTemperature1();
-  runningTotalRampRate = temp * NUMREADINGS;
+  readThermocouple(&A);
+
+  if(A.stat !=0){
+    abortWithError(3);
+  }
+  runningTotalRampRate = A.temperature * NUMREADINGS;
   for(int i =0; i<NUMREADINGS; i++){
-    airTemp[i]=temp; 
+    airTemp[i]=A.temperature; 
   }
 
 
@@ -463,7 +423,7 @@ void setup()
   delay(7500);
 
   myMenu.showCurrent();
-  
+
 }
 
 
@@ -477,14 +437,24 @@ void loop()
 #endif
     lastUpdate = millis();
 
-    temp1 = getAirTemperature1();
-    temp2 = getAirTemperature2();
+    readThermocouple(&A);// read the thermocouple
+    readThermocouple(&B);// read the thermocouple
+
+    if(A.stat != 0){
+      abortWithError(3);
+    }
+
     // keep a rolling average of the temp
     totalT1 -= readingsT1[index];               // subtract the last reading
     totalT2 -= readingsT2[index];
 
-    readingsT1[index] = temp1; // read the thermocouple
-    readingsT2[index] = temp2; // read the thermocouple
+    readingsT1[index] = A.temperature; 
+    if(B.stat ==0){
+      readingsT2[index] = B.temperature; 
+    } 
+    else {
+      readingsT2[index] = 0;
+    }
 
     totalT1 += readingsT1[index];               // add the reading to the total
     totalT2 += readingsT2[index]; 
@@ -532,7 +502,12 @@ void loop()
         Serial.print("0,0,0,0,0,"); 
         Serial.print(averageT1); 
         Serial.print(",");
-        Serial.print(averageT2); 
+        if(B.stat ==0){ // only print the second C data if the input is valid
+          Serial.print(averageT2); 
+        } 
+        else {
+          Serial.print("999"); 
+        }
 #ifdef DEBUG
         Serial.print(",");
         Serial.print(freeMemory());
@@ -553,7 +528,12 @@ void loop()
         Serial.print(",");
         Serial.print(averageT1); 
         Serial.print(",");
-        Serial.print(averageT2);
+        if(B.stat ==0){ // only print the second C data if the input is valid
+          Serial.print(averageT2); 
+        } 
+        else {
+          Serial.print("999"); 
+        }
 #ifdef DEBUG
         Serial.print(",");
         Serial.print(freeMemory());
@@ -968,6 +948,9 @@ void loadLastUsedProfile(){
   //Serial.println(temp);
   loadParameters(profileNumber);
 }
+
+
+
 
 
 
