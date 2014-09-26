@@ -36,11 +36,11 @@ Using GIT:
 If you are familiar with git and want to use git to check out the source code, use the following command in a terminal:
 (This will check out the source code from git into the current directory. I will cover no further use of git here.)
 
-	git clone https://github.com/estechnical/reflowOvenController.git
+	git clone -b m31855Fault https://github.com/estechnical/reflowOvenController.git
 
 
 Downloading a zip file:
-	To download a zip file of the latest source code, visit https://github.com/estechnical/reflowOvenController and click on the
+	To download a zip file of the latest source code, visit https://github.com/estechnical/reflowOvenController/tree/m31855Fault and click on the
 	'Download ZIP' button (in the right hand column of the page). Once the file has dowloaded, extract the zip archive to a location of your choice.
 
 
