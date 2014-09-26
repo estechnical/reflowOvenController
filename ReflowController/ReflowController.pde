@@ -14,7 +14,7 @@
 
 //#define DEBUG
 
-String ver = "2.6"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
+String ver = "2.7mod1"; // bump minor version number on small changes, major on large changes, eg when eeprom layout changes
 
 // for Albert Lim's version, extra features: outputs a pulse on the TTL serial 
 // port to open the drawer automatically at the beginning of ramp down
@@ -41,7 +41,7 @@ profileValues activeProfile; // the one and only instance
 
 int idleTemp = 50; // the temperature at which to consider the oven safe to leave to cool naturally
 
-int fanAssistSpeed = 50; // default fan speed
+int fanAssistSpeed = 35; // default fan speed
 
 
 // do not edit below here unless you know what you are doing!
@@ -146,11 +146,6 @@ double averageT2 = 0;
 boolean lastStopPin = true; // this is a flag used to store the state of the stop key pin on the last cycle through the main loop
 // if the stop key state changes, we perform an action, not EVERY time we find the key is down... this is to prevent multiple
 // triggers from a single keypress
-
-
-#ifdef OPENDRAWER
-boolean openedDrawer=false;
-#endif
 
 
 // state machine bits
@@ -345,11 +340,6 @@ void setup()
 
   Serial.begin(57600);
 
-#ifdef OPENDRAWER
-  pinMode(1,OUTPUT);
-  digitalWrite(1,LOW);
-#endif
-
   if(firstRun()){
     factoryReset();
     loadParameters(0);
@@ -416,10 +406,7 @@ void setup()
   lcd.setCursor(0,2);
   lcd.print("      v");
   lcd.print(ver);
-#ifdef OPENDRAWER
-  lcd.setCursor(0,3);
-  lcd.print(" Albert Lim version");
-#endif
+
   delay(7500);
 
   myMenu.showCurrent();
@@ -625,15 +612,6 @@ void loop()
         Setpoint = activeProfile.peakTemp -15; // get it all going with a bit of a kick! v sluggish here otherwise, too hot too long
       }
 
-#ifdef OPENDRAWER
-      if(!openedDrawer){
-        openedDrawer=true;
-        digitalWrite(1,HIGH);
-        delay(5);
-        digitalWrite(1,LOW);
-      }
-#endif
-
       Setpoint -= (activeProfile.rampDownRate/10); 
 
       if(Setpoint <= idleTemp){
@@ -661,9 +639,7 @@ void loop()
   // during cooling, the t962a lags a long way behind, hence the hugely lenient cooling allowance.
 
   // both of these errors are blocking and do not exit!
-#ifndef OPENDRAWER
   if(Setpoint > Input + 50) abortWithError(1);// if we're 50 degree cooler than setpoint, abort
-#endif
   //if(Input > Setpoint + 50) abortWithError(2);// or 50 degrees hotter, also abort
 
   PID.Compute();
@@ -704,9 +680,6 @@ void cycleStart(){
 
   startTime = millis();
   currentState = rampToSoak;
-#ifdef OPENDRAWER
-  openedDrawer=false;
-#endif
   lcd.clear();
   lcd.print("Starting cycle ");
   lcd.print(profileNumber);
@@ -906,7 +879,7 @@ void factoryReset(){
   for(int i =0; i< 30; i++){
     saveParameters(i);
   }
-  fanAssistSpeed = 50;
+  fanAssistSpeed = 35;
   saveFanSpeed();
   profileNumber = 0;
   saveLastUsedProfile();
@@ -948,15 +921,4 @@ void loadLastUsedProfile(){
   //Serial.println(temp);
   loadParameters(profileNumber);
 }
-
-
-
-
-
-
-
-
-
-
-
 

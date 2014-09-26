@@ -12,6 +12,11 @@ typedef struct tcInput {
 
 };
 
+float mapfloat(float x, long in_min, long in_max, long out_min, long out_max)
+{
+  return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
+}
+
 char spi_transfer(volatile char data)
 {
   SPDR = data; // Start the transmission
@@ -43,7 +48,11 @@ void readThermocouple(struct tcInput* input){
   
   input->stat = reply & B111;
   
-  input->temperature = value * 0.25;
+  float temp = value * 0.25;
+  
+  // Due to Maxim's mis-trimmed MAX31855KASA+ ICs, controllers with 
+  // date code 1352A2 253AL or 1352A2 253AK ICs need this correction.  
+  input->temperature = mapfloat(temp, 7, 79, 0, 100); 
   
   digitalWrite(input->chipSelect, HIGH);
   
