@@ -7,6 +7,12 @@ Copyright Ed Simmons 2013 - ESTechnical
 ed@estechnical.co.uk
 http://www.estechnical.co.uk
 
+Important
+====================
+
+This branch is solely for use on controllers with MAX31855KASA+ ICs that are affected by the issue described here: http://www.estechnical.co.uk/blog/entry/we-discovered-a-fault-with-estechnical-reflow-controllers
+
+Using this firmware on non-affected controllers will give poor results.
 
 Introduction
 ====================
