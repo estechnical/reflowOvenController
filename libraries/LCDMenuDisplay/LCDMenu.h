@@ -11,16 +11,21 @@
 #define LCDMenu_h
 
 #include "../MenuBase/MenuBase.h"
-#include "../LiquidCrystal/LiquidCrystal.h"
+#include <LiquidCrystal.h>
+#include <Encoder.h>
 
 class LCDMenu: public MenuDisplay {
 public: 
 	LCDMenu ();
+	void setCurrent(MenuItem *newCurrent);
 	void showCurrent();
 	void showCurrentValue();
 	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey);
+	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin);
+	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin, uint8_t encoderButtonPin);
 	void poll();
-	bool update;
+	void printMenuStructure();
+	uint32_t getTimeLastKeyPressed();
 	
 private:
 	// the pins that we poll for button presses
@@ -35,10 +40,21 @@ private:
 		down,
 		stop
 	};
+	
+	Encoder *encoder;
+	
+	bool update;
+	MenuItem *head; // the pointer to the topmost menu item
 	buttons pressedKey, lastKey;
 	LiquidCrystal *LCD;
 	boolean fourkeys;
-	unsigned int counter;
+	long *encoderVal;
+	long lastEncoderVal;
+	uint8_t encoderIncrement;
+	bool *encoderButtonVal;
+	uint8_t encoderButtonPin;
+	uint32_t pressedAt; // used internally to time key repeat
+	uint32_t timeLastKeyPress; // used to store the time of last accepted keypress, returned to user by getTimeLastKeyPressed()
 	
 };
 

@@ -29,6 +29,11 @@ MenuItemInteger::MenuItemInteger (const char *newName, int *targetInt, const int
 	rollOver = rollover;
 }
 
+MenuItemInteger::MenuItemInteger (const char *newName, int *targetInt, const int min , const int max, const bool rollover, const bool liveUpdate) {
+	this->liveUpdate = liveUpdate;	
+	MenuItemInteger (newName, targetInt, min , max, rollover);
+}
+
 void MenuItemInteger::init (const char *newName, int *targetInt, const int min , const int max, const bool rollover) {	
 	this->Name = newName;
 	this->TargetInteger = targetInt;
@@ -43,6 +48,11 @@ void MenuItemInteger::init (const __FlashStringHelper *newName_P, int *targetInt
 	myMin = min;
 	myMax = max;
 	rollOver = rollover;
+}
+
+void MenuItemInteger::init (const __FlashStringHelper *newName_P, int *targetInt, const int min , const int max, const bool rollover, const bool liveUpdate) {	
+	this->liveUpdate = liveUpdate;	
+	init (newName_P, targetInt, min , max, rollover);
 }
 
 void MenuItemInteger::select (MenuDisplay *controller) {
@@ -73,12 +83,14 @@ void MenuItemInteger::exit (MenuDisplay *controller) {
 
 void MenuItemInteger::inc (MenuDisplay *controller) {
 	CurrentValue++;
+	
 	if(rollOver){
 		if(CurrentValue > myMax) CurrentValue = myMin;
 	}
 	else {
 		if(CurrentValue > myMax) CurrentValue = myMax;
 	}
+	if(liveUpdate) *TargetInteger = CurrentValue;
 }
 
 void MenuItemInteger::dec (MenuDisplay *controller) {
@@ -89,4 +101,16 @@ void MenuItemInteger::dec (MenuDisplay *controller) {
 	else {
 		if(CurrentValue < myMin) CurrentValue = myMin;
 	}
+	if(liveUpdate) *TargetInteger = CurrentValue;
+}
+
+void MenuItemInteger::printItemInfo(){
+	Serial.println("This is a MenuItemInteger");
+	Serial.print("Name:");
+	if(Name_P == NULL){
+		Serial.print(Name);
+	} else {
+		Serial.print(Name_P);
+	}
+	Serial.println();
 }

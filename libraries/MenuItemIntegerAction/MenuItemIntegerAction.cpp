@@ -83,3 +83,14 @@ void MenuItemIntegerAction::dec (MenuDisplay *controller) {
 		if(CurrentValue < myMin) CurrentValue = myMin;
 	}
 }
+
+void MenuItemIntegerAction::printItemInfo(){
+	Serial.println("This is a MenuItemIntegerAction");
+	Serial.print("Name:");
+	if(Name_P == NULL){
+		Serial.print(Name);
+	} else {
+		Serial.print(Name_P);
+	}
+	Serial.println();
+}

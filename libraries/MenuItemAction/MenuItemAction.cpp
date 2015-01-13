@@ -61,3 +61,14 @@ void MenuItemAction::getValueString(char *string) {
 	string = "";
 	return;
 }
+
+void MenuItemAction::printItemInfo(){
+	Serial.println("This is a MenuItemAction");
+	Serial.print("Name:");
+	if(Name_P == NULL){
+		Serial.print(Name);
+	} else {
+		Serial.print(Name_P);
+	}
+	Serial.println();
+}

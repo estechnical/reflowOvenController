@@ -38,7 +38,7 @@ void MenuDisplay::moveToNext () {
 		}
 	} else {
 		this->Current = this->Current->Next;
-	}		
+	}
 }
 
 void MenuDisplay::moveToPrev () {	
@@ -50,5 +50,7 @@ void MenuDisplay::moveToPrev () {
 		}
 	} else {
 		this->Current = this->Current->Previous;
-	}		
+	}
 }
+
+

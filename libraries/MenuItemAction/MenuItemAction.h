@@ -23,6 +23,7 @@ public:
 	void exit(MenuDisplay *controller);
 	void inc(MenuDisplay *controller);
 	void dec(MenuDisplay *controller);
+	void printItemInfo();
 
 private:
 	void (*TargetAction)();

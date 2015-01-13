@@ -33,6 +33,9 @@ public:
   virtual void inc(MenuDisplay *controller) = 0;
   virtual void dec(MenuDisplay *controller) = 0;
   void addItem(MenuItem *newItem);
+  virtual void printItemInfo() = 0;
+
+  
 };
 
 class MenuDisplay {
@@ -46,5 +49,7 @@ public:
   void moveToPrev ();
   
   virtual void poll () = 0;
+  
+  void printMenuStructure();
 };
 #endif

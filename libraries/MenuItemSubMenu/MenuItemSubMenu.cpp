@@ -60,3 +60,25 @@ void MenuItemSubMenu::getValueString (char *string) {
 	string="";
 	return;
 }
+
+void MenuItemSubMenu::printItemInfo(){
+	Serial.println("Sub menu item");
+	Serial.print("Name:");
+	if(Name_P == NULL){
+		Serial.print(Name);
+	} else {
+		Serial.print(Name_P);
+	}
+	Serial.println();
+
+	Serial.println("Sub menu structure");
+	MenuItem *temp = this->Child;
+	int i = 0;
+	while(temp !=NULL){
+		Serial.println(i++);
+		temp->printItemInfo();
+		temp = temp->Next;
+	}
+	Serial.println("End of submenu");
+}
+

@@ -17,6 +17,7 @@ MenuItemDouble::MenuItemDouble () {
 	this->Next = NULL;
 	this->Previous = NULL;
 	this->TargetDouble = NULL;
+	this->increment = 0.1;
 }
 
 MenuItemDouble::MenuItemDouble (const char *newName, double *targetDouble, const double min, const double max) {	
@@ -27,6 +28,11 @@ MenuItemDouble::MenuItemDouble (const char *newName, double *targetDouble, const
 	this->TargetDouble = targetDouble;
 	myMin = min;
 	myMax = max;
+}
+
+MenuItemDouble::MenuItemDouble (const char *newName, double *targetDouble, const double min, const double max, const double increment) {	
+	MenuItemDouble(newName, targetDouble, min, max);
+	this->increment = increment;
 }
 
 void MenuItemDouble::init (const char *newName, double *targetDouble, const double min, const double max) {	
@@ -41,6 +47,14 @@ void MenuItemDouble::init (const __FlashStringHelper *newName_P, double *targetD
 	this->TargetDouble = targetDouble;
 	myMin = min;
 	myMax = max;
+}
+
+void MenuItemDouble::init (const __FlashStringHelper *newName_P, double *targetDouble, const double min, const double max, const double increment) {	
+	this->Name_P = newName_P;
+	this->TargetDouble = targetDouble;
+	myMin = min;
+	myMax = max;
+	this->increment = increment;
 }
 
 void MenuItemDouble::select (MenuDisplay *controller) {
@@ -74,15 +88,26 @@ void MenuItemDouble::exit (MenuDisplay *controller) {
 }
 
 void MenuItemDouble::inc (MenuDisplay *controller) {
-	CurrentValue += (double)0.1;
+	CurrentValue += increment;
 	if(CurrentValue > myMax)
 		CurrentValue = myMax;
 }
 
 void MenuItemDouble::dec (MenuDisplay *controller) {
-	CurrentValue -= (double)0.1;
+	CurrentValue -= increment;
 	if(CurrentValue < myMin)
 		(CurrentValue = myMin);
+}
+
+void MenuItemDouble::printItemInfo(){
+	Serial.println(F("This is a MenuItemDouble"));
+	Serial.print((F("Name:")));
+	if(Name_P == NULL){
+		Serial.print(Name);
+	} else {
+		Serial.print(Name_P);
+	}
+	Serial.println();
 }
 
 

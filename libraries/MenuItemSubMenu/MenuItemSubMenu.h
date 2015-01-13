@@ -28,6 +28,7 @@ public:
 //	void exit(MenuDisplay *controller);
 	void addChild(MenuItem *newChild);
 //	void init();
+	void printItemInfo();
 
 private:
 	MenuItem *Child;
