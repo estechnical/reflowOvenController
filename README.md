@@ -96,7 +96,7 @@ Save the file and quit.
 Setting up the source code to build firmware
 ====================
 
-** Loading new firmware will erase prevously saved profile settings, be sure you make a note of important profile settings **
+**Loading new firmware will erase prevously saved profile settings, be sure you make a note of important profile settings**
 
 Locate the sketchbook directory that the arduino IDE created when installing, you can see the path to your sketchbook folder in the arduino preferences menu (File-> Preferences).
 
