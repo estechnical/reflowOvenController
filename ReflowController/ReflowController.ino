@@ -51,8 +51,9 @@ int profileNumber = 0;
 #include <PID_v1.h>
 
 #include <LiquidCrystal.h>
+#include <ParLCD.h>
 
-LiquidCrystal lcd(19, 18, 17, 16, 15, 14);
+ParLCD lcd(19, 18, 17, 16, 15, 14);   
 
 #include <Encoder.h> // needed by the menu
 #include <MenuItemSelect.h>

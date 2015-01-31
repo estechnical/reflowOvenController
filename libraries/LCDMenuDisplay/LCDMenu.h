@@ -11,8 +11,11 @@
 #define LCDMenu_h
 
 #include "../MenuBase/MenuBase.h"
-#include <LiquidCrystal.h>
+
+#include "LCDDevice.h"
 #include <Encoder.h>
+
+
 
 class LCDMenu: public MenuDisplay {
 public: 
@@ -20,9 +23,9 @@ public:
 	void setCurrent(MenuItem *newCurrent);
 	void showCurrent();
 	void showCurrentValue();
-	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey);
-	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin);
-	void init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin, uint8_t encoderButtonPin);
+	void init(MenuItem *initial, LCDDevice *lcd, boolean fourkey);
+	void init(MenuItem *initial, LCDDevice *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin);
+	void init(MenuItem *initial, LCDDevice *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin, uint8_t encoderButtonPin);
 	void poll();
 	void printMenuStructure();
 	uint32_t getTimeLastKeyPressed();
@@ -43,10 +46,10 @@ private:
 	
 	Encoder *encoder;
 	
-	bool update;
 	MenuItem *head; // the pointer to the topmost menu item
 	buttons pressedKey, lastKey;
-	LiquidCrystal *LCD;
+	//LiquidCrystal *LCD;
+	LCDDevice *LCD;
 	boolean fourkeys;
 	long *encoderVal;
 	long lastEncoderVal;

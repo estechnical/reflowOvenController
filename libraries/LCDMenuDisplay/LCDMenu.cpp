@@ -17,23 +17,22 @@ LCDMenu::LCDMenu () {
 	timeLastKeyPress = 0;
 }
 
-void LCDMenu::init (MenuItem *initial, LiquidCrystal *lcd, boolean fourkey) {
+void LCDMenu::init (MenuItem *initial, LCDDevice *lcd, boolean fourkey) {
 	this->LCD = lcd;
 	this->fourkeys = fourkey;
 	this->head = initial;
 	this->Current = initial;
 	this->Editing = NULL;
-	this->update = true;
 	this->encoder = NULL;
 	this->encoderButtonPin = 0;
 }
 
-void LCDMenu::init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin) {
+void LCDMenu::init(MenuItem *initial, LCDDevice *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin) {
 	init (initial, lcd, fourkey);
 	this->encoder = new Encoder(encApin, encBpin);
 }
 
-void LCDMenu::init(MenuItem *initial, LiquidCrystal *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin, uint8_t encoderButtonPin) {
+void LCDMenu::init(MenuItem *initial, LCDDevice *lcd, boolean fourkey, uint8_t encApin, uint8_t encBpin, uint8_t encoderButtonPin) {
 	init (initial, lcd, fourkey, encApin, encBpin);
 	this->encoderButtonPin = encoderButtonPin;
 }
@@ -158,18 +157,21 @@ void LCDMenu::poll () {
 			pressedKey = ok;
 		}
 	}
-	
+	bool update = false;
 	uint32_t pressedDuration = millis() - pressedAt;
-	if(pressedKey != none){
+	if(pressedKey != none)
+	{
 	    if((pressedKey != lastKey ) || ( pressedKey == lastKey && pressedDuration >= 50 && (millis() - timeLastKeyPress >= 250)) )
-	    	{ 
+	    {
 		    update = true;
 		    lastKey = pressedKey;
 		    timeLastKeyPress = millis(); // timestamp of the keypress
 		    int i = 0;
-		    do{
+		    do
+		    {
 		    	i++;
-				switch (pressedKey) {
+				switch (pressedKey) 
+				{
 				case up:
 					if (this->Editing == NULL) {
 						this->moveToNext();
@@ -196,8 +198,7 @@ void LCDMenu::poll () {
 				}
 		    } while (i < abs(count));
 	    }
-	    if(update){
-		    update = false;		
+	    if(update){	
 		    if (this->Editing == NULL) {
 			    this->showCurrent();
 		    } else {

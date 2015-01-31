@@ -3,7 +3,7 @@ reflowOvenController
 
 ESTechnical Reflow Oven Controller source code
 
-Copyright Ed Simmons 2013 - ESTechnical
+Copyright Ed Simmons 2013-2015 - ESTechnical
 ed@estechnical.co.uk
 http://www.estechnical.co.uk
 
@@ -15,7 +15,7 @@ The ESTechnical reflow oven controller was designed to operate the T962, T962A a
 
 It operates using PID control of the heater and fan output to improve the control compared to the original manufacturer's controller.
 
-ESTechnical sell the controller hardware ready to install on eBay and on the ESTechnical website: http://www.estechnical.co.uk
+ESTechnical sell the controller hardware ready to install on the ESTechnical website: http://www.estechnical.co.uk
 
 Thanks go to Toby Wilkinson for his excellent menu codebase - http://tobestool.net/t962-t962a-reflow-oven-controller/
 Thanks are also due to Brett Beauregard for his excellent work on the arduino PID library - http://playground.arduino.cc/Code/PIDLibrary
@@ -50,25 +50,34 @@ Browse to your arduino installation directory, then browse to hardware/arduino/b
 
 	##############################################################
 
-	atmega328_20MHz.name=ESTechnical Reflow controller
+	estechnical20mhz.name=ESTechnical Reflow Controller
+	
+	estechnical20mhz.upload.tool=avrdude
+	estechnical20mhz.upload.protocol=arduino
 
-	atmega328_20MHz.upload.protocol=stk500
-	atmega328_20MHz.upload.maximum_size=30720
-	atmega328_20MHz.upload.speed=57600
+	estechnical20mhz.bootloader.tool=avrdude
+	estechnical20mhz.bootloader.low_fuses=0xFF
+	estechnical20mhz.bootloader.unlock_bits=0x3F
+	estechnical20mhz.bootloader.lock_bits=0x0F
 
-	atmega328_20MHz.bootloader.low_fuses=0xFF
-	atmega328_20MHz.bootloader.high_fuses=0xDA
-	atmega328_20MHz.bootloader.extended_fuses=0x05
-	atmega328_20MHz.bootloader.path=atmega
-	atmega328_20MHz.bootloader.file=ATmegaBOOT_168_atmega328.hex
-	atmega328_20MHz.bootloader.unlock_bits=0x3F
-	atmega328_20MHz.bootloader.lock_bits=0x0F
+	estechnical20mhz.build.f_cpu=20000000L
+	estechnical20mhz.build.board=AVR_DUEMILANOVE
+	estechnical20mhz.build.core=arduino
+	estechnical20mhz.build.variant=standard
 
-	atmega328_20MHz.build.mcu=atmega328p
-	atmega328_20MHz.build.f_cpu=20000000L
-	atmega328_20MHz.build.core=arduino
-	atmega328_20MHz.build.variant=standard
+	## Arduino Duemilanove or Diecimila w/ ATmega328
+	## ---------------------------------------------
+	estechnical20mhz.menu.cpu.atmega328=ATmega328
 
+	estechnical20mhz.menu.cpu.atmega328.upload.maximum_size=30720
+	estechnical20mhz.menu.cpu.atmega328.upload.maximum_data_size=2048
+	estechnical20mhz.menu.cpu.atmega328.upload.speed=57600
+
+	estechnical20mhz.menu.cpu.atmega328.bootloader.high_fuses=0xDA
+	estechnical20mhz.menu.cpu.atmega328.bootloader.extended_fuses=0x05
+	estechnical20mhz.menu.cpu.atmega328.bootloader.file=atmega/ATmegaBOOT_168_atmega328.hex
+
+	estechnical20mhz.menu.cpu.atmega328.build.mcu=atmega328p
 
 	##############################################################
 
