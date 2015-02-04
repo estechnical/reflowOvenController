@@ -50,7 +50,7 @@ Downloading a zip file:
 Installation
 ====================
 
-To edit/compile the source code for the reflow controller, first install the arduino IDE - http://arduino.cc/en/Main/Software
+To edit/compile the source code for the reflow controller, first install the arduino IDE - http://arduino.cc/en/Main/Software - download the most recent version (1.5.6 or newer) and install.
 
 Because the ESTechnical reflow controller uses a 20MHz crystal instead of a 16MHz crystal, this requires special build settings for the arduino IDE. 
 
